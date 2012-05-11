@@ -134,7 +134,7 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 							{
 							expressionFile = selecFile.getSelectedFile();
 							jLabel8.setText(expressionFile.getAbsolutePath());
-							
+							jButton2.setEnabled(true);
 							}
 					}
 					});
@@ -206,7 +206,7 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 				jButton2.setText("Launch");
 				jButton2.setBackground(new java.awt.Color(255,255,255));
 				jButton2.setBounds(392, 265, 100, 22);
-				//jButton2.setEnabled(false);
+				jButton2.setEnabled(false);
 				jButton2.addActionListener(new java.awt.event.ActionListener() {
 					public void actionPerformed(java.awt.event.ActionEvent e) 
 						{
@@ -361,6 +361,7 @@ public void reset()
 	{
 	//jLabel8.setText("");
 	jLabel9.setText("");
+	if(this.expressionFile==null)	jButton2.setEnabled(false);
 	}
 
 @Override

@@ -1633,6 +1633,8 @@ public ArrayList<Cell> recursiveSearch(Cell cell, String searchText)
  		}
 	else
 		{
+		if(cell.term.name.toLowerCase().contains(searchText.toLowerCase()) || cell.term.id.toLowerCase().contains(searchText.toLowerCase()))
+			retList.add(cell);
 		for(Cell c:cell.subcells)
 			retList.addAll(recursiveSearch(c,searchText));
 		}

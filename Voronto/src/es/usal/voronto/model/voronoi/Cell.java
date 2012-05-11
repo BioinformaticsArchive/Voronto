@@ -286,7 +286,7 @@ public class Cell implements Cloneable {
 	expressionDeviation=new ArrayList<Float>();
 	float e=0;
 	
-	long time=System.currentTimeMillis();
+	//long time=System.currentTimeMillis();
 	//0) Do search only in the species
 	ArrayList<String> spcids=new ArrayList<String>();
 	for(String id:term.geneIds)		
@@ -294,8 +294,8 @@ public class Cell implements Cloneable {
 		if(id.startsWith(md.organismKegg) && !spcids.contains(id))	
 			spcids.add(id.replace(md.organismKegg+":", ""));
 		}
-	System.out.println("0)\t"+(System.currentTimeMillis()-time)/1000.0);
-	time=System.currentTimeMillis();
+	//System.out.println("0)\t"+(System.currentTimeMillis()-time)/1000.0);
+	//time=System.currentTimeMillis();
 	
 	//0b) And only take the elements that are in any KO term
 	ArrayList<Integer> ids=new ArrayList<Integer>();
@@ -312,10 +312,10 @@ public class Cell implements Cloneable {
 			}
 		}
 	
-	System.out.println("0b)\t"+(System.currentTimeMillis()-time)/1000.0);
+	//System.out.println("0b)\t"+(System.currentTimeMillis()-time)/1000.0);
 	//0c) Compute the expression
 	try{
-	time=System.currentTimeMillis();
+	//time=System.currentTimeMillis();
 	for(int column=0;column<md.getNumConditions();column++)
 		{
 		e=0;
@@ -335,7 +335,7 @@ public class Cell implements Cloneable {
 		
 		expressionLevel.add(e);
 		}
-	System.out.println("0c)\t"+(System.currentTimeMillis()-time)/1000.0);
+	//System.out.println("0c)\t"+(System.currentTimeMillis()-time)/1000.0);
 
 	}catch(Exception ex){ex.printStackTrace();}
 	return;

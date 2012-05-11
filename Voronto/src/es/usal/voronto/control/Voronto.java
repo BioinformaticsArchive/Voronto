@@ -152,6 +152,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             		    break;
             	    case 3:
             	    	m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", false);
+            	    	//m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", true);
             	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
             	    	m=m.get(new OntologyTerm("biological_process", "GO:0008150"));
             	    	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.BP);
@@ -189,7 +190,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
                 	int maxDepth=3;			//KEGG
                 	if(ontology==3)
                 		{
-                		maxDepth=2;	//GO whole ontology is too crowded (14 levels and thousands of terms), keep in two /three levels (three might take too much time)
+                		maxDepth=6;	//GO whole ontology is too crowded (14 levels and thousands of terms), keep in two /three levels (three might take too much time)
                 		}
                 	if(ontology==4 || ontology==5)	maxDepth=20;
                 	if(ontology==3)

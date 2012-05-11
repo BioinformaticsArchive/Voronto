@@ -199,7 +199,6 @@ public class ExpressionData
 		this.rMatrixName=name.replace("-", "").replace(" ", ".");
 		loadFromFile(rowHeader, colHeader);
 		//this.path=path.substring(0, path.lastIndexOf("/"));
-		System.out.println("Pasando de la excepcion");
 		}
 	
 	public void simpleStats()

@@ -122,38 +122,47 @@ public class BernhardtTessellation {
 		return p;
 		}
 	
+	public Cell buildCell(OntologyTerm term, int level)
+		{
+		Cell c=new Cell(1, term, level);
+		if(mode==1)	System.out.println("Creating cell "+term.name+" at level "+level);
+		switch(ontology)
+			{
+			case VoronoiVisualization.KEGG:
+				c.numLeaves=c.getNumMatchedKOTerms(expData);
+				break;
+			case VoronoiVisualization.GO:
+			case VoronoiVisualization.SLIMBP:
+			case VoronoiVisualization.SLIMCC:
+				c.numLeaves=c.getNumMatchedGOTerms(expData);
+				break;
+			case VoronoiVisualization.REACTOME:
+				c.numLeaves=c.getNumMatchedTerms(expData);
+				break;
+			default:
+				System.err.println("No matched ontology");
+				c.numLeaves=c.getNumMatchedTerms(expData);
+				break;
+			}
+		c.weight=c.numLeaves;	//In general, the term has a size proportional to the number of genes annotated with it
+		if(mode==1)	System.out.println("\t with weight "+c.weight);
+		numLeaves++;
+		//if(c.weight==0)	return null;			//Exception: there are gene entities and none has this term annotated
+		//else			
+			return c;
+		}
+	
 	public Cell generateRecursiveCell(Map<OntologyTerm, Map> m, OntologyTerm term, int level)
 		{
 		OntologyTerm[] names=null;
 		if(m!=null)	names=m.keySet().toArray(new OntologyTerm[0]);
-		if(names==null || names.length==0 || level==maxDepth)	//end recursion
+		else		return null;
+		if(names==null || names.length==0 || level==maxDepth)	//no children, end recursion
 			{
 			if(expData!=null)
 				{
-				Cell c=new Cell(1, term, level);
-				if(mode==1)	System.out.println("Creating cell "+term.name+" at level "+level);
-				switch(ontology)
-					{
-					case VoronoiVisualization.KEGG:
-						c.numLeaves=c.getNumMatchedKOTerms(expData);
-						break;
-					case VoronoiVisualization.GO:
-					case VoronoiVisualization.SLIMBP:
-					case VoronoiVisualization.SLIMCC:
-						c.numLeaves=c.getNumMatchedGOTerms(expData);
-						break;
-					case VoronoiVisualization.REACTOME:
-						c.numLeaves=c.getNumMatchedTerms(expData);
-						break;
-					default:
-						System.err.println("No matched ontology");
-						c.numLeaves=c.getNumMatchedTerms(expData);
-						break;
-					}
-				c.weight=c.numLeaves;	//In general, the term has a size proportional to the number of genes annotated with it
-				if(mode==1)	System.out.println("\t with weight "+c.weight);
-				numLeaves++;
-				if(c.weight==0)	return null;			//Exception: there are gene entities and none has this term annotated
+				Cell c=buildCell(term, level);
+				if(c.weight==0)	return null; //no children and no annotations, so not shown
 				else			return c;
 				}
 			else 
@@ -164,7 +173,7 @@ public class BernhardtTessellation {
 				if(term.geneIds==null || term.geneIds.size()==0)	return new Cell(1, term, level);
 				else											
 					{
-					System.out.println("Adding leaf node with "+term.geneIds.size()+" genes");
+				//	System.out.println("Adding leaf node with "+term.geneIds.size()+" genes");
 					return new Cell(term.geneIds.size(), term, level);
 					}
 				}
@@ -179,6 +188,7 @@ public class BernhardtTessellation {
 			float w=0;
 			//NOTE: this implementation does not support that a parent has a different number of elements that the sum of the elements on its children.
 			//		Therefore, if i have a node with 1 children, the node with 11 elements and the children with 9, the parent will only reflect those of the children.
+			// 		Moreover, if I have a node with 29 children, but 0 annotations in the children, and 1 annotation in the parent, it won't appear 
 			for(OntologyTerm n:names)
 				{
 				Cell sc=generateRecursiveCell((Map<OntologyTerm,Map>)(m.get(n)), n, level+1);
@@ -188,7 +198,24 @@ public class BernhardtTessellation {
 					w+=sc.weight;
 					}
 				}
+			//NEW
+			
+			Cell c=buildCell(term, level);
 			if(cs.size()>0)
+				{
+				c.subcells=cs.toArray(new Cell[0]);
+				c.weight+=w;
+				c.numLeaves+=w;
+				Comparator<Cell> byWeight=new Voronto.WeightComparator();
+				Arrays.sort(c.subcells, byWeight);
+				}
+			if(c.weight>0)
+				return c;
+			else
+				return null;
+			//
+			//OLD
+			/*if(cs.size()>0)
 				{
 				Cell c=new Cell(w, term, level);
 				if(mode==1)	System.out.println("else: Creating cell "+term.name+" at level "+level);
@@ -200,7 +227,7 @@ public class BernhardtTessellation {
 					
 				return c;
 				}
-			else	return null;
+			else	return null;*/
 			}
 		}
 	
