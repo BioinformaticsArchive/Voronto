@@ -71,11 +71,11 @@ public class ReactomeParser
 	 * @param file
 	 * @return
 	 */
-	public static TreeMap<OntologyTerm, TreeMap> readSer(String file)
+	public static TreeMap<OntologyTerm, TreeMap> readSer(String file) throws Exception
 		{
 		TreeMap<OntologyTerm, TreeMap> map=null;
-		try
-		   {
+		//try
+		//   {
 			System.out.println("Reading "+file);
 			InputStream is=Thread.currentThread().getContextClassLoader().getResourceAsStream(file);
 			ObjectInputStream oin = new ObjectInputStream(is);
@@ -90,7 +90,7 @@ public class ReactomeParser
 		    	if(map.get(ot)==null || map.get(ot).isEmpty())
 		    		map.remove(ot);
 		    	}
-		    }catch(Exception e){e.printStackTrace();}
+		//    }catch(Exception e){e.printStackTrace();}
 		
 		return map;	
 		}

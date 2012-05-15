@@ -125,7 +125,7 @@ public class Cell implements Cloneable {
 		{
 		int cont=0;
 		ArrayList<String> spcids=new ArrayList<String>();
-		for(String id:term.geneIds)		if(id.startsWith(md.organismKegg))	spcids.add(id);
+		for(String id:term.geneIds)		if(id.startsWith(md.organismKegg))	spcids.add(id.toLowerCase());
 		for(String id:spcids)
 			{
 			if((md.koidList.indexOf(id))>=0)
@@ -239,7 +239,7 @@ public class Cell implements Cloneable {
 		//0) Prepare cell expression data structure for gene in the cell and the expression data
 		for(String id:term.geneIds)
 			{
-			if(Arrays.binarySearch(md.sortedGeneNames, id)>=0)
+			if(Arrays.binarySearch(md.sortedGeneNames, id.toLowerCase())>=0)	//TODO should make everything lower case to avoid problems...
 				term.geneExs.put(id, new ArrayList<Float>());
 			}
 	
@@ -296,13 +296,13 @@ public class Cell implements Cloneable {
 		}
 	//System.out.println("0)\t"+(System.currentTimeMillis()-time)/1000.0);
 	//time=System.currentTimeMillis();
-	
 	//0b) And only take the elements that are in any KO term
 	ArrayList<Integer> ids=new ArrayList<Integer>();
 	ArrayList<String> idNames=new ArrayList<String>();
 	for(String id:spcids)
 		{
 		int i=0;
+		id=id.toLowerCase();
 		if((i=Arrays.binarySearch(md.sortedGeneNames, id))>=0)
 			{
 			i=md.order.get(i);

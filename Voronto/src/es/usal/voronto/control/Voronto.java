@@ -89,7 +89,8 @@ public class Voronto extends JFrame implements PropertyChangeListener{
 			        {
 		        	message="Loading expression data...";
 			        setProgress(10);    
-			        
+			        Thread.sleep(100);
+			           
 			        System.out.println("building expression data...");
 			    	time=System.currentTimeMillis();
 			    	try{
@@ -190,10 +191,9 @@ public class Voronto extends JFrame implements PropertyChangeListener{
                 	int maxDepth=3;			//KEGG
                 	if(ontology==3)
                 		{
-                		maxDepth=6;	//GO whole ontology is too crowded (14 levels and thousands of terms), keep in two /three levels (three might take too much time)
+                		maxDepth=2;	//GO whole ontology is too crowded (14 levels and thousands of terms), keep in two /three levels (three might take too much time)
                 		}
                 	if(ontology==4 || ontology==5)	maxDepth=20;
-                	if(ontology==3)
                 		
                 	time=System.currentTimeMillis();
                 	gv=null;
@@ -216,7 +216,8 @@ public class Voronto extends JFrame implements PropertyChangeListener{
                 	}
             } catch (Exception e) 
             	{
-            	message="\n\n ERROR: "+e.getMessage();
+            	//message="\n\n ERROR: "+e.getMessage();
+            	message="\n\n ERROR: "+getError(e);
             	e.printStackTrace();
             	setProgress(0);
             	}
@@ -227,6 +228,14 @@ public class Voronto extends JFrame implements PropertyChangeListener{
 	        public void done() {
 	        	progressMonitor.setProgress(0);
 	        }
+		}
+	
+	public String getError(Exception e)
+		{
+		String msg=e.getMessage();
+		for(StackTraceElement ste:e.getStackTrace())
+			msg+="\n\tat "+ste.getClassName()+"."+ste.getMethodName()+":"+ste.getLineNumber();
+		return msg;
 		}
 	
 	public static void main (String[] args) {

@@ -163,7 +163,7 @@ public class VoronoiVisualization extends PApplet{
 	this.voronto=parent;
 	if(customName!=null)	customOntologyName=customName;
 	
- 	v=new BernhardtTessellation(m, md, width, height-100, /*this,*/ type, maxDepth);
+ 	v=new BernhardtTessellation(m, md, width, height-100, type, maxDepth);
  	this.expData=md;
  	if(type==VoronoiVisualization.KEGG)	this.levelThreshold=v.maxLevel+1;
  	if(type==VoronoiVisualization.SLIMBP || type==VoronoiVisualization.SLIMCC)	this.levelThreshold=v.maxLevel;
@@ -268,6 +268,7 @@ public class VoronoiVisualization extends PApplet{
 			conditionBox=new Rectangle2D.Float(width-10-getWidth(expData.getColumnLabel(selectedCol), font),8, getWidth(expData.getColumnLabel(selectedCol), font), font.getSize());
 			
 			drawScale();
+			//drawSkewedScale();
 			}
 		
 		//Ontology label
@@ -455,6 +456,110 @@ public void drawProfile(Cell c)
 	strokeWeight(2);
 	stroke(0);
 	line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+squareSize,(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize+squareSize,this.END_Y+20+squareSize);
+	}
+
+/**
+ * Draws a scale bar that is skewed as data, to avoid confusions
+ */
+public void drawSkewedScale()
+	{
+	int sw=150;
+	int sh=10;
+	int x=width-sw-15;
+	int y=(int)(END_Y+sh*0.5);
+	scaleBox=new Rectangle2D.Float(x, y, sw, sh);
+	strokeWeight(1);
+	
+	Cell hc=null;
+	Cell finalhc=null;
+	for(int i=0;i<hoveredCells.size();i++)
+		{
+		hc=hoveredCells.get(i);
+		if(hc.level==min(levelThreshold, minHoveredLevel))
+			finalhc=hc;
+		}
+	hc=finalhc;
+	
+	boolean refDrawn=false;
+	double jump0=(255-(0/(float)sw)*255);
+	double jump1=(255-(0/(float)sw)*255);
+	double jump=Math.ceil(jump1-jump0)+2;
+	
+	
+	double mid=sw*0.5;//for median
+	if(whiteValue==MEAN)	
+		mid=sw*(expData.average-expData.min)/(expData.max-expData.min);
+	
+	double jumpBelow=Math.ceil(255/(255*mid/sw))+0;
+	double jumpAbove=Math.ceil(255/Math.abs(255*mid/sw-255))+0;
+			
+	for(int i=0;i<sw;i++)
+		{
+		int h=0;
+		boolean drawReference=false;
+		switch(COLOR_MODE)
+			{
+			case COLOR_EXPRESSION:
+				if(i>mid)
+					{
+					h=(int)Math.round(255-((i-mid)/mid*2*255));
+					
+					stroke(255,h,h);
+					if(hc!=null && hc.color.get(selectedCol).getRed()==255 && Math.abs(hc.color.get(selectedCol).getBlue()-h)<=jumpAbove)
+						drawReference=true;
+					}
+				else	
+					{
+					h=(int)Math.round(255-(Math.abs(i-mid)/Math.abs(mid))*255);
+					stroke(h,h,255);
+					if(hc!=null && hc.color.get(selectedCol).getBlue()==255 && Math.abs(hc.color.get(selectedCol).getRed()-h)<=jumpBelow)
+						drawReference=true;
+					}
+				break;
+			case COLOR_DEVIATION:
+				h=(int)Math.round(255-(i/(float)sw)*255);
+				stroke(h,255,h);
+				if(hc!=null && Math.abs(hc.color.get(selectedCol).getBlue()-h)<=jump)
+					drawReference=true;
+				break;
+			}
+		line(x+i,y,x+i,y+sh);
+		if(drawReference && !refDrawn)
+			{
+			stroke(0);
+			line(x+i, y-2, x+i, y+sh+2);
+			refDrawn=true;
+			}
+		}
+	stroke(200,200,200);
+	noFill();
+	rect(x-1,y-1,sw+1,sh+1);
+	
+	//Draw legend
+	textAlign(CENTER, TOP);
+	fill(200);
+	line(x,y+sh,x,y+sh+2);
+	if(whiteValue==MEAN)	text("min", x, y+sh+3);
+	else if(whiteValue==MEDIAN)	text("0", x, y+sh+3);
+	line((int)(x+mid),y+sh,(int)(x+mid),y+sh+2);
+	if(whiteValue==MEAN)		text("avg", (int)(x+mid), y+sh+3);
+	else if(whiteValue==MEDIAN)	text("50", (int)(x+mid), y+sh+3);
+	
+	line(x+sw-1,y+sh,x+sw-1,y+sh+2);
+	if(whiteValue==MEAN)		text("max", x+sw-1, y+sh+3);
+	else if(whiteValue==MEDIAN)	text("100", x+sw-1, y+sh+3);
+	
+	line((int)(x+mid*0.5),y+sh,(int)(x+mid*0.5),y+sh+1);
+	line((int)(x+mid*2),y+sh,(int)(x+mid*2),y+sh+1);
+	/*line((int)(x+sw*0.1),y+sh,(int)(x+sw*0.1),y+sh+1);
+	line((int)(x+sw*0.2),y+sh,(int)(x+sw*0.2),y+sh+1);
+	line((int)(x+sw*0.3),y+sh,(int)(x+sw*0.3),y+sh+1);
+	line((int)(x+sw*0.4),y+sh,(int)(x+sw*0.4),y+sh+1);
+	line((int)(x+sw*0.6),y+sh,(int)(x+sw*0.6),y+sh+1);
+	line((int)(x+sw*0.7),y+sh,(int)(x+sw*0.7),y+sh+1);
+	line((int)(x+sw*0.8),y+sh,(int)(x+sw*0.8),y+sh+1);
+	line((int)(x+sw*0.9),y+sh,(int)(x+sw*0.9),y+sh+1);*/
+	noStroke();
 	}
 /**
  * Draws a scale bar
@@ -692,40 +797,6 @@ public void mouseReleased() {
 	
 	if(mouseEvent.getClickCount()==1 && hoveredCells.size()>0)
 		{
-		/*if(ctrlDown)
-			{
-			ctrlDown=false;
-			try{
-				File f=new File("genesOnTerm.html");
-				BufferedWriter bw=new BufferedWriter(new FileWriter(f));
-				bw.write("<html>  <head/><body>");
-				bw.newLine();
-				for(Cell c:hoveredCells)
-					{
-					if(c.subcells==null || c.subcells.length==0)
-						{
-						bw.write("<b>Term:</b> \t"+c.term.name+" ("+c.term.id+")<br>");
-						bw.newLine();
-						bw.write("<b>"+c.term.geneIds.size()+" annotated genes</b> ("+expData.chip+"):<br>");
-						for(String id: c.term.geneIds)
-							{
-							if(expData.chip.equals("entrezgene"))
-								bw.write(" <a href=\"http://www.ncbi.nlm.nih.gov/gene?term="+id+"\">"+id+"</a><br>");
-							else
-								bw.write(" <a href=\"http://www.ncbi.nlm.nih.gov/gene?term="+id+"%20AND%20"+expData.organism+"%5BOrganism%5D\">"+id+"</a><br>");
-							bw.newLine();
-							}
-						}
-					}
-				bw.newLine();
-				bw.write("</body></html>");
-				bw.newLine();
-				bw.close();
-				java.awt.Desktop.getDesktop().browse(java.net.URI.create("file://"+f.getAbsolutePath()));
-				}catch(Exception e){e.printStackTrace();}
-			
-			return;
-			}*/
 		if(altDown)
 			{
 			altDown=false;
@@ -770,7 +841,7 @@ public void mouseReleased() {
 						KEGGPortType serv    = locator.getKEGGPort();
 						
 						if(expData!=null)
-							{
+							{//
 							PathwayElement ps[]=serv.get_elements_by_pathway("path:"+this.expData.organismKegg+c.term.id);
 							if(ps.length==0)	//generic KO pathway
 								{
@@ -850,7 +921,7 @@ public void mouseReleased() {
 							else	//specific species pathway
 								{
 								long t= System.currentTimeMillis();
-								String[] element_id_list=c.term.geneExs.keySet().toArray(new String[0]);
+								String[] element_id_list=c.term.geneExs.keySet().toArray(new String[0]);//term.geneExs misses cap dependent things (like SPBC1683.06c)
 								
 								ArrayList<String> fg=new ArrayList<String>();
 								ArrayList<String> bg=new ArrayList<String>();
@@ -858,7 +929,7 @@ public void mouseReleased() {
 								//TODO: Hay genes que se encuentran en elementos visuales del pathway pero no est‡n en term.geneExs!! 
 								for(PathwayElement p:ps)
 									{
-									//System.out.println(p.getType()+"\t"+p.getElement_id());
+								//	System.out.println(p.getType()+"\t"+p.getElement_id());
 									if(p.getType().equals("gene"))
 										{
 										float ex=0;
@@ -866,6 +937,7 @@ public void mouseReleased() {
 										
 										for(String g:p.getNames())
 											{
+											if(g.indexOf(":")>=0)	g=g.substring(g.indexOf(":")+1).toLowerCase();
 											int pos=0;
 											if((pos=Arrays.binarySearch(element_id_list, g))>=0)
 												{
@@ -1482,9 +1554,7 @@ public void recursiveExpressionNormalization(Cell cell, int column)
 				{
 				case COLOR_EXPRESSION:
 					int q=-1;
-					if(cell.term.name.contains("Linoleic acid"))
-						System.out.println("Linoleic");
-		
+					
 					if(SCALE_MODE==SCALE_CONDITION)		q=expData.getQuantile(cell.expressionLevel.get(column), column);
 					else if(SCALE_MODE==SCALE_MATRIX)	q=expData.getQuantile(cell.expressionLevel.get(column));
 					if(q>=50)
@@ -1495,7 +1565,6 @@ public void recursiveExpressionNormalization(Cell cell, int column)
 					else
 						{
 						h=(int)Math.round(255-((50.0-q)/50)*255);
-						//h=(int)Math.round(255-((q)/50)*255);
 						cell.color.set(column, new Color(h,h, 255));
 						}
 					break;

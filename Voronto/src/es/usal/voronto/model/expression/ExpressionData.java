@@ -863,7 +863,7 @@ public class ExpressionData
 				else	
 					geneNamesHash.get(geneNames[i]).add(i);
 				geneKOIDs[i]=organismKegg+":"+geneNames[i];//TODO: this might not be true for all kinds of ids and species
-				koidList.add(geneKOIDs[i]);
+				koidList.add(geneKOIDs[i].toLowerCase());
 				
 				try{
 					for(int j=0;j<numConditions;j++)
@@ -897,11 +897,14 @@ public void sortGeneNames()
 	{
 	long time=System.currentTimeMillis();
 	sortedGeneNames=Arrays.copyOf(geneNames, geneNames.length);
+	for(int i=0;i<sortedGeneNames.length;i++)	
+		sortedGeneNames[i]=sortedGeneNames[i].toLowerCase();
+	
 	order=new HashMap<Integer,Integer>();
 	Arrays.sort(sortedGeneNames);
 	for(int i=0;i<geneNames.length;i++)
 		{
-		String gene=geneNames[i];
+		String gene=geneNames[i].toLowerCase();
 		int oi=Arrays.binarySearch(sortedGeneNames, gene);
 		order.put(oi, i);
 		}

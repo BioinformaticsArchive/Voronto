@@ -28,8 +28,10 @@ import keggapi.KEGGPortType;
 
 public class GOparser {
 	
-	
-	
+	public static void main(String[] args)
+		{
+		GOparser.map("/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/data/calbicans/annotations/gene_association.cgd", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/gobiological_process-calbicans_gene_ensembl.map");
+		}
 	private static List<OntologyTerm> lot;
 
 	/**
@@ -217,59 +219,6 @@ public class GOparser {
 	 * @param m
 	 * @param lot
 	 */
-	/*public static synchronized void addChildren(OntologyTerm root, Map<OntologyTerm, String> parents, Map<OntologyTerm, Map> m, ArrayList<OntologyTerm> lot, int level)
-		{
-		System.out.println("Adding chidren to "+root.name);
-		for(OntologyTerm ot:lot)
-			{
-			if(parents.get(ot).equals(root.id))
-				{
-				//System.out.println("Adding parent "+root.name+" to term "+ot.name);
-				m.put(ot, new TreeMap<OntologyTerm, Map>());
-				
-				//copy list to avoid recursive concurrent modifications
-				ArrayList<OntologyTerm> nlot=new ArrayList<OntologyTerm>(Arrays.asList(new OntologyTerm[lot.size()]));
-				Collections.copy(nlot, lot);
-				nlot.remove(nlot.indexOf(ot));
-				
-				addChildren(ot, parents, m.get(ot), nlot, level+1);
-				}
-			}
-		}*/
-	/*public static synchronized void addChildren(OntologyTerm root, Map<OntologyTerm, List<String>> parents, Map<OntologyTerm, Map> m, ArrayList<OntologyTerm> lot, int level)
-		{
-		System.out.println("Adding chidren to "+root.name);
-		for(OntologyTerm ot:lot)	//TODO: much quicker with a binary search...
-			{
-			long time;
-			//time=System.currentTimeMillis();
-			List<String>p=parents.get(ot);
-			//System.out.println("1) "+(System.currentTimeMillis()-time));
-			
-			for(String pp:p)
-				{
-				if(pp.equals(root.id))
-					{
-				//	time=System.currentTimeMillis();
-					//System.out.println("Adding parent "+root.name+" to term "+ot.name);
-					m.put(ot, new TreeMap<OntologyTerm, Map>());
-					
-					//copy list to avoid recursive concurrent modifications
-					ArrayList<OntologyTerm> nlot=new ArrayList<OntologyTerm>(Arrays.asList(new OntologyTerm[lot.size()]));
-					Collections.copy(nlot, lot);
-					
-					p.remove(pp);	//To avoid removing a ot if there are still parents to solve
-					if(p.size()==0)
-						nlot.remove(nlot.indexOf(ot));
-					//System.out.println("2) "+(System.currentTimeMillis()-time));
-					addChildren(ot, parents, m.get(ot), nlot, level+1);
-					break;
-					}
-				}
-			
-			}
-		}*/
-	
 	public static synchronized void addChildren(OntologyTerm root, Map<String, List<String>> children, Map<OntologyTerm, Map> m, Map<String, OntologyTerm> lot, int level)
 		{
 		System.out.println();
@@ -288,6 +237,34 @@ public class GOparser {
 		return;
 		}
 
+	/**
+	 * Takes a GAF file and generated a map from it (basically the same file, but smaller)
+	 * 
+	 * @param gafFilePath
+	 */
+	public static void map(String gafFilePath, String mapFilePath)
+		{
+		BufferedReader in;
+		BufferedWriter out;
+		try {
+			in = new BufferedReader(new FileReader(gafFilePath));
+			out = new BufferedWriter(new FileWriter(mapFilePath));
+			out.write("go_id\texternal_gene_id");	out.newLine();
+			String cad=null;
+			while((cad=in.readLine())!=null)
+				{	
+				if(!cad.startsWith("!"))
+					{
+					String[] fields=cad.split("\t");
+					String go=fields[4];
+					String orf=fields[10];
+					orf=orf.substring(orf.lastIndexOf("|")+1);
+					out.write(go+"\t"+orf); out.newLine();
+					}
+				}
+			out.close();
+		}catch(Exception e){e.printStackTrace();}
+		}
 	
 	/**
 	 * Returns the map m, but with its ontology terms mapped to gene ids on the corresponding format (entrezgene, external_gene_id, ensembl_gene_id or hgnc_symbol)
