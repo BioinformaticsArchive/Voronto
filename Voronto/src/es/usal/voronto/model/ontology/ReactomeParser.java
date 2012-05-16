@@ -74,14 +74,15 @@ public class ReactomeParser
 	public static TreeMap<OntologyTerm, TreeMap> readSer(String file) throws Exception
 		{
 		TreeMap<OntologyTerm, TreeMap> map=null;
-		//try
-		//   {
+		try
+		   {
 			System.out.println("Reading "+file);
 			InputStream is=Thread.currentThread().getContextClassLoader().getResourceAsStream(file);
 			ObjectInputStream oin = new ObjectInputStream(is);
 	        map= (TreeMap<OntologyTerm, TreeMap>)oin.readObject();
 		    oin.close();
 		    System.out.println("reactome hierarchy read");
+		   }catch(Exception e){throw new Exception("No map file for this organism in Reactome");}
 		    
 		    //We now remove root elements with no children (they arise from inconsistencies on the OWL format)
 		    OntologyTerm[] set=map.keySet().toArray(new OntologyTerm[0]);
@@ -90,7 +91,6 @@ public class ReactomeParser
 		    	if(map.get(ot)==null || map.get(ot).isEmpty())
 		    		map.remove(ot);
 		    	}
-		//    }catch(Exception e){e.printStackTrace();}
 		
 		return map;	
 		}

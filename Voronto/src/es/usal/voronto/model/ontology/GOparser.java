@@ -18,8 +18,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
+import es.usal.voronto.model.expression.ExpressionData;
 import es.usal.voronto.view.VoronoiVisualization;
 
 import keggapi.Definition;
@@ -258,13 +260,14 @@ public class GOparser {
 					String[] fields=cad.split("\t");
 					String go=fields[4];
 					String orf=fields[10];
-					orf=orf.substring(orf.lastIndexOf("|")+1);
+					if(orf.indexOf("|")>0)	orf=orf.substring(0, orf.indexOf("|"));
 					out.write(go+"\t"+orf); out.newLine();
 					}
 				}
 			out.close();
 		}catch(Exception e){e.printStackTrace();}
 		}
+	
 	
 	/**
 	 * Returns the map m, but with its ontology terms mapped to gene ids on the corresponding format (entrezgene, external_gene_id, ensembl_gene_id or hgnc_symbol)
@@ -276,7 +279,7 @@ public class GOparser {
 	 * TODO: either generate a file for each GO type (Slim or not; BP/MF/CC) or big annotation files with everything and select depending if they appear in m
 	 * @return
 	 */
-	public static TreeMap<OntologyTerm, TreeMap> annotate(TreeMap<OntologyTerm, TreeMap> m, String species, String gene_id, int type) throws Exception 
+	public static TreeMap<OntologyTerm, TreeMap> annotate(TreeMap<OntologyTerm, TreeMap> m, String species, String gene_id, int type, ExpressionData ed) throws Exception 
 		{
 		String ontology="";
 		switch(type)
@@ -292,9 +295,11 @@ public class GOparser {
 				break;
 			}
 		
+		BufferedReader in = null; 
+		try{
 		String path="es/usal/voronto/data/go/"+ontology+"-"+convert(species)+"_gene_ensembl.map";//by now testing with GO slim bp
-		BufferedReader in = new BufferedReader(new InputStreamReader(Thread.currentThread().getContextClassLoader().getResourceAsStream(path)));//para applet/jws
-		
+		in = new BufferedReader(new InputStreamReader(Thread.currentThread().getContextClassLoader().getResourceAsStream(path)));//para applet/jws
+		}catch(Exception e){e.printStackTrace(); throw new Exception("No GO mapping for organism "+species);}
 		String header=in.readLine();
 		String []fields=header.split("\t");
 		int id=-1;//column with the requested gene ids.
@@ -303,6 +308,7 @@ public class GOparser {
 		
 		String cad;
 		TreeMap<String, ArrayList<String>> annotations=new TreeMap<String, ArrayList<String>>();
+		TreeSet<String> mappedGenes=new TreeSet<String>();
 		while((cad=in.readLine())!=null)
 			{
 			fields=cad.split("\t");	
@@ -311,11 +317,41 @@ public class GOparser {
 				if(annotations.get(fields[0])==null)
 					annotations.put(fields[0], new ArrayList<String>());
 				annotations.get(fields[0]).add(fields[id]);
+				//if(!mappedGenes.contains(fields[id].toLowerCase()))	mappedGenes.add(fields[id].toLowerCase());
+				//if(Arrays.binarySearch(mappedGenes.toArray(new String[0]), fields[id].toLowerCase())<0)	
+				mappedGenes.add(fields[id].toLowerCase());
 				}
 			}
 		
+		//---
+		if(ed!=null)
+			{
+			int nomap=0;
+			/*System.out.println("Genes in the annotations but not in the expression data:");
+			for(String mg:mappedGenes)
+				if(Arrays.binarySearch(ed.sortedGeneNames, mg)<0)
+					{
+					System.out.println(mg);
+					nomap++;
+					}
+			System.out.println("TOTAL: "+nomap);
+			
+			nomap=0;*/
+			//System.out.println("Genes in the expression data but not annotated:");
+			for(String mg:ed.sortedGeneNames)
+				if(!mappedGenes.contains(mg))
+					{
+					//System.out.println(mg);
+					nomap++;
+					}
+			//System.out.println("TOTAL: "+nomap);
+			System.out.println("Genes in the expression data but not annotated: "+nomap);
+			}
+		//---
+		
 		long time=System.currentTimeMillis();
 		addRecursiveAnnotations(annotations,m,null,0);
+		
 		System.out.println("time in adding annotations "+(System.currentTimeMillis()-time)/1000.0);
 		
 		return m;

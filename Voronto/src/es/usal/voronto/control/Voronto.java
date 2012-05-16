@@ -139,7 +139,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             	    	m=GOparser.parse("es/usal/voronto/data/go/goslim_generic.obo", "biological_process", false);
             	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
             	    	m=m.get(new OntologyTerm("biological_process", "GO:0008150"));
-            	    	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.SLIMBP);
+            	    	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.SLIMBP, md);
                     	
             		    type=VoronoiVisualization.SLIMBP;
             		    break;
@@ -147,7 +147,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             	    	m=GOparser.parse("es/usal/voronto/data/go/goslim_generic.obo", "cellular_component", false);
             	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
             	    	m=m.get(new OntologyTerm("cellular_component", "GO:0005575"));
-            	    	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.SLIMCC);
+            	    	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.SLIMCC, md);
 	            		
             	    	type=VoronoiVisualization.SLIMCC;
             		    break;
@@ -156,7 +156,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             	    	//m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", true);
             	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
             	    	m=m.get(new OntologyTerm("biological_process", "GO:0008150"));
-            	    	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.BP);
+            	    	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.BP, md);
             			
             	    	type=VoronoiVisualization.GO;
             			break;
@@ -216,8 +216,8 @@ public class Voronto extends JFrame implements PropertyChangeListener{
                 	}
             } catch (Exception e) 
             	{
-            	//message="\n\n ERROR: "+e.getMessage();
-            	message="\n\n ERROR: "+getError(e);
+            	message="\n\n ERROR: "+e.getMessage();
+            	//message="\n\n ERROR: "+getError(e);
             	e.printStackTrace();
             	setProgress(0);
             	}
