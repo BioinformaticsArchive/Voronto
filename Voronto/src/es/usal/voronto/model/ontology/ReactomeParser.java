@@ -39,9 +39,9 @@ public class ReactomeParser
 		{
 		long t=System.currentTimeMillis();
 		//A) Parse a single file
-		ReactomeParser.parse("/Users/rodri/Desktop/biopax3/Homo sapiens.owl");
+		//ReactomeParser.parse("/Users/rodri/Desktop/biopax3/Homo sapiens.owl");
 		//B) Parse every file in a folder
-		//BioPAXparser.buildReactomeHierarchy("/Users/rodri/Desktop/biopax3/");
+		ReactomeParser.buildReactomeHierarchy("/Users/rodri/Desktop/biopax3/mapped");
 		System.out.println("parsing takes "+(System.currentTimeMillis()-t)/1000.0);
 		}
 	

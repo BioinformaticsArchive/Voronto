@@ -4,6 +4,7 @@ import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.geom.Rectangle2D.Float;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -40,6 +41,7 @@ public class BernhardtTessellation {
 	
 	private boolean tessellationFailed=false;
 	private boolean zeroAreas=false;
+	private boolean allZeroAreas=false;
 	
 	private int mode=0; //0-normal execution, 1-debug mode
 	private int ontology;
@@ -83,7 +85,6 @@ public class BernhardtTessellation {
 	    	Cell c=generateRecursiveCell(m.get(terms[i]), terms[i],1);
 	    	if(c!=null)	cellsTemp.add(c);
 	    	}
-	    //maxLevel++;//the leaf level
 	    cells=cellsTemp.toArray(new Cell[0]);
 	    if(cells.length==0)	throw new Exception("No mapped genes. Check that gene ids match with ontology");
 	    System.out.println("Number of cells "+numLeaves);
@@ -125,7 +126,6 @@ public class BernhardtTessellation {
 	public Cell buildCell(OntologyTerm term, int level)
 		{
 		Cell c=new Cell(1, term, level);
-		if(mode==1)	System.out.println("Creating cell "+term.name+" at level "+level);
 		switch(ontology)
 			{
 			case VoronoiVisualization.KEGG:
@@ -145,19 +145,77 @@ public class BernhardtTessellation {
 				break;
 			}
 		c.weight=c.numLeaves;	//In general, the term has a size proportional to the number of genes annotated with it
-		if(mode==1)	System.out.println("\t with weight "+c.weight);
+		//---
+		//if(c.numLeaves==0)	c.weight=0;
+		//else				c.weight=(float)Math.log(c.numLeaves+1);	//In general, the term has a size proportional to the number of genes annotated with it
+		//---
+		
+		//if(mode==1)	System.out.println("Creating cell "+term.name+" at level "+level+ " with weight "+c.weight);
 		numLeaves++;
-		//if(c.weight==0)	return null;			//Exception: there are gene entities and none has this term annotated
-		//else			
-			return c;
+		return c;
 		}
 	
+	public Cell generateRecursiveCell(Map<OntologyTerm, Map> m, OntologyTerm term, int level)
+	{
+	OntologyTerm[] names=null;
+	if(m!=null)	names=m.keySet().toArray(new OntologyTerm[0]);
+	else		return null;
+	
+	//if(names==null || names.length==0 || level==maxDepth) //NOTE: this might work with the new schema where geneIds assures to get everyone on the subterms	
+	if(names==null || names.length==0)	
+		{
+		if(expData!=null)
+			{
+			Cell c=buildCell(term, level);
+			if(c.weight==0)	return null; //no children and no annotations, so not shown
+			else			return c;
+			}
+		else 
+			{
+			numLeaves++;
+			
+			if(mode==1)	System.out.println("Creating cell "+term.name+" at level "+level);
+			if(term.geneIds==null || term.geneIds.size()==0)	return new Cell(1, term, level);
+			else											
+				{
+			//	System.out.println("Adding leaf node with "+term.geneIds.size()+" genes");
+				return new Cell(term.geneIds.size(), term, level);
+				}
+			}
+		}
+	else	//has children
+		{
+		if(level>maxLevel)
+			{
+			maxLevel=Math.min(maxDepth, level);
+			}
+		ArrayList<Cell> cs=new ArrayList<Cell>();
+		for(OntologyTerm n:names)
+			{
+			Cell sc=generateRecursiveCell((Map<OntologyTerm,Map>)(m.get(n)), n, level+1);
+			if(sc!=null)
+				cs.add(sc);
+			}
+		
+		Cell c=buildCell(term, level);
+		c.subcells=cs.toArray(new Cell[0]);
+		
+		if(c!=null && c.weight>0)
+			return c;
+		else
+			return null;
+		}
+	}
+
+	/*
 	public Cell generateRecursiveCell(Map<OntologyTerm, Map> m, OntologyTerm term, int level)
 		{
 		OntologyTerm[] names=null;
 		if(m!=null)	names=m.keySet().toArray(new OntologyTerm[0]);
 		else		return null;
-		if(names==null || names.length==0 || level==maxDepth)	//no children, end recursion
+		
+		//if(names==null || names.length==0 || level==maxDepth)	//no children, end recursion --> level==maxDepth prunes elements that has children but no annotations for them!
+		if(names==null || names.length==0)	//no children, end recursion  -> but without it it takes much more time and might hang tessellation!
 			{
 			if(expData!=null)
 				{
@@ -186,9 +244,7 @@ public class BernhardtTessellation {
 				}
 			ArrayList<Cell> cs=new ArrayList<Cell>();
 			float w=0;
-			//NOTE: this implementation does not support that a parent has a different number of elements that the sum of the elements on its children.
-			//		Therefore, if i have a node with 1 children, the node with 11 elements and the children with 9, the parent will only reflect those of the children.
-			// 		Moreover, if I have a node with 29 children, but 0 annotations in the children, and 1 annotation in the parent, it won't appear 
+			float nl=0;
 			for(OntologyTerm n:names)
 				{
 				Cell sc=generateRecursiveCell((Map<OntologyTerm,Map>)(m.get(n)), n, level+1);
@@ -196,68 +252,86 @@ public class BernhardtTessellation {
 					{
 					cs.add(sc);
 					w+=sc.weight;
+					nl+=sc.numLeaves;
 					}
 				}
-			//NEW
 			
-			Cell c=buildCell(term, level);
-			if(cs.size()>0)
+			Cell c=null;
+			switch(ontology)
 				{
-				c.subcells=cs.toArray(new Cell[0]);
-				c.weight+=w;
-				c.numLeaves+=w;
-				Comparator<Cell> byWeight=new Voronto.WeightComparator();
-				Arrays.sort(c.subcells, byWeight);
+				case VoronoiVisualization.GO:		//In GO cases, there can be elements that have annotations that are in no subterms!
+				case VoronoiVisualization.SLIMBP:
+				case VoronoiVisualization.SLIMCC:
+					c=buildCell(term, level);
+					if(cs.size()>0)
+						{
+						c.subcells=cs.toArray(new Cell[0]);
+						c.weight+=w;
+						c.numLeaves+=nl;
+						Comparator<Cell> byWeight=new Voronto.WeightComparator();
+						Arrays.sort(c.subcells, byWeight);
+						}
+					break;
+				case VoronoiVisualization.KEGG:	//In the rest of cases, every annotation is in some of the subterms
+				case VoronoiVisualization.REACTOME:
+				case VoronoiVisualization.CUSTOM:
+				default:
+					c=new Cell(1, term, level);
+					if(cs.size()>0)
+						{
+						c.subcells=cs.toArray(new Cell[0]);
+						c.weight=w;
+						c.numLeaves=nl;
+						Comparator<Cell> byWeight=new Voronto.WeightComparator();
+						Arrays.sort(c.subcells, byWeight);
+						}
+					break;
 				}
-			if(c.weight>0)
+			
+			if(c!=null && c.weight>0)
+				{
+				//c.weight=(int)Math.ceil(Math.log(c.weight)+1);//Testing, to avoid super-big/small differences
 				return c;
+				}
 			else
 				return null;
-			//
-			//OLD
-			/*if(cs.size()>0)
-				{
-				Cell c=new Cell(w, term, level);
-				if(mode==1)	System.out.println("else: Creating cell "+term.name+" at level "+level);
-				
-				c.subcells=cs.toArray(new Cell[0]);
-				
-				Comparator<Cell> byWeight=new Voronto.WeightComparator();
-				Arrays.sort(c.subcells, byWeight);
-					
-				return c;
-				}
-			else	return null;*/
 			}
-		}
+		}*/
 	
 	public void recursiveComputeVoronoi(Cell[] c, int level, Polygon totalArea)
 	{
 //	System.out.println("Computing voronoi for level "+level);
 	if(level<maxDepth)	//we only compute voronoi tessellation till maxDepth (in the case of GO complete, with 14 levels, this is adviceable)
-	//if(level<2)	//we only compute voronoi tessellation till maxDepth (in the case of GO complete, with 14 levels, this is adviceable)
+	//if(level<1)	//we only compute voronoi tessellation till maxDepth (in the case of GO complete, with 14 levels, this is adviceable)
 		{
 		currentCells=c;
 	    boundingPolygon=totalArea;
 		contawp=0;
-		if(c!=null && c.length>1)//NEW
-			computeVoronoi();
-		for(Cell cc:c)
+		
+		if(totalArea.npoints>2)
 			{
-			if(cc.subcells!=null && cc.subcells.length>1)	
+			if(c!=null && c.length>1)
+				computeVoronoi();
+			for(Cell cc:c)
 				{
-				if(mode==1)	System.out.println("Computing voronoi for subcells of "+cc.term.name+" (level "+cc.level+")");
-				currentName=cc.term.name;
-				recursiveComputeVoronoi(cc.subcells, level+1, cc.region.getPolygon());
-				}
-			else if(cc.subcells!=null && cc.subcells.length==1)//TODO: a term with only one children that has a term with only one children, etc. is not reflected (only 1st level)
-				{
-				cc.subcells[0].region=new MPolygon(cc.region.getPoints());
-				cc.subcells[0].centroid=cc.centroid;
-				cc.subcells[0].position=cc.position;
-				recursiveComputeVoronoi(cc.subcells, level+1, cc.region.getPolygon());
+				if(cc.subcells!=null && cc.subcells.length>1)	
+					{
+					if(mode==1)	
+						System.out.println("Computing voronoi for subcells of "+cc.term.name+" (level "+cc.level+")");
+					currentName=cc.term.name;
+					recursiveComputeVoronoi(cc.subcells, level+1, cc.region.getPolygon());
+					}
+				else if(cc.subcells!=null && cc.subcells.length==1)//TODO: a term with only one children that has a term with only one children, etc. is not reflected (only 1st level)
+					{
+					cc.subcells[0].region=new MPolygon(cc.region.getPoints());
+					cc.subcells[0].centroid=cc.centroid;
+					cc.subcells[0].position=cc.position;
+					recursiveComputeVoronoi(cc.subcells, level+1, cc.region.getPolygon());
+					}
 				}
 			}
+		else
+			System.err.println(currentName+"at level "+level+" has no area");
 		}
 	}
 
@@ -330,7 +404,9 @@ public class BernhardtTessellation {
 		  boolean tooMuchIncrease=errIncrease>2;
 		  if(zeroAreas)	tooMuchIncrease=errIncrease>2.5;
 		  
-		  if(kk>0 && (unmatchingAreas || tessellationFailed || tooMuchIncrease))
+		  if(allZeroAreas)
+			  System.err.println("All areas are zero in this term!!!");
+		  if(kk>0 && (unmatchingAreas || tessellationFailed || tooMuchIncrease || allZeroAreas))
       	      {
 			  if(mode==1) System.out.println(currentName+": Stop & Rollback");
 	    	  for(int i=0;i<cellsAnt.length;i++)		currentCells[i]=new Cell(cellsAnt[i]);	//deep copy
@@ -368,6 +444,8 @@ public class BernhardtTessellation {
 		contawp++;
 		
 		zeroAreas=false;
+		allZeroAreas=false;
+		int numZeros=0;
 		
 		AWPTesselation v=new AWPTesselation(currentCells, boundingPolygon);
 		
@@ -378,11 +456,14 @@ public class BernhardtTessellation {
 			tessellationFailed=true;
 			return;
 			}
-		for(MPolygon pp:p)	if(pp.getPoints()==null || pp.getPoints().size()==0)
-			{
-			zeroAreas=true; //return;
-			}
-		
+		for(MPolygon pp:p)	
+			if(pp.getPoints()==null || pp.getPoints().size()==0)
+				{
+				zeroAreas=true; //return;
+				numZeros++;
+				}
+		if(numZeros==p.length)	allZeroAreas=true;
+			
 		for(int i=0;i<p.length;i++)
 			{
 			p[i].translate(bp.x, bp.y);
@@ -635,16 +716,15 @@ public void reweighting()
 		}
 	return;
 	}
-	
-	public void weightedPolygonPlacement()
+	/*
+	 * public void weightedPolygonPlacement()
 		{
 		int sumWeight=0;
 		for(Cell c:currentCells)	sumWeight+=c.weight;
-		if(mode==1)
-			if(currentName.contains("cellular process"))
-				System.out.println("response to sitmulus");
 		double unitWidth=boundingPolygon.getBounds().width/Math.sqrt(sumWeight);
 		double unitHeight=boundingPolygon.getBounds().height/Math.sqrt(sumWeight);
+		ArrayList<Rectangle2D.Float> polygons=new ArrayList<Rectangle2D.Float>(); //polygons reserved for each point
+				
 		if(unitWidth==0 || unitHeight==0)
 			{
 			//System.err.println("Empty starting area");
@@ -654,15 +734,19 @@ public void reweighting()
 		int y0=boundingPolygon.getBounds().y;
 		boolean fitting=false;
 		ArrayList<Point2D.Float> inits=new ArrayList<Point2D.Float>();
-		inits.add(new Point2D.Float(x0,y0));
+		
+		if(mode==1)	
+			System.out.println("Placement for subterms of "+this.currentName);
 		
 		float sumArea=0;
-		
 		
 		while(!fitting)
 			{
 			inits.clear();
-			inits.add(new Point2D.Float(x0,y0));
+			polygons.clear();
+			//inits.add(new Point2D.Float(x0,y0));
+			for(int j=0;j<boundingPolygon.npoints;j++)
+				inits.add(new Point2D.Float(boundingPolygon.xpoints[j],boundingPolygon.xpoints[j]));
 			fitting=true;
 			for(Cell c: currentCells)
 				sumArea+=Math.sqrt(c.weight)*unitWidth*Math.sqrt(c.weight)*unitHeight;
@@ -676,13 +760,14 @@ public void reweighting()
 				}
 			sumArea=0;
 		
-			for(int i=0;i<currentCells.length;i++)	//For each cell
+			//for(int i=0;i<currentCells.length;i++)	//For each cell
+			for(int i=currentCells.length-1; i>=0;i--)
 				{
 				currentCells[i].position[0]=-1000000;
 				currentCells[i].position[1]=-1000000;
 				float w=currentCells[i].weight;
 				Point2D.Float center=new Point2D.Float(-1000000,-1000000);
-				if(mode==1)					System.out.println("Placing "+i+" with weight "+w);
+				//if(mode==1)					System.out.println("Placing "+i+" with weight "+w);
 				
 				//int cont=0;
 				//while(cont < inits.size())//keep trying
@@ -691,24 +776,33 @@ public void reweighting()
 					//Point2D.Float init=inits.get(cont);//get one possible init
 					Point2D.Float init=inits.remove(0);//get one possible init
 					
-					Rectangle2D.Float r=new Rectangle2D.Float(init.x,init.y,(int)(Math.sqrt(w)*unitWidth),(int)(Math.sqrt(w)*unitHeight));
-					center=new Point2D.Float(init.x+(int)(Math.sqrt(w)*unitWidth*.5), init.y+(int)(Math.sqrt(w)*unitHeight*.5));
+					Rectangle2D.Float r=new Rectangle2D.Float(init.x,init.y,(float)(Math.sqrt(w)*unitWidth),(float)(Math.sqrt(w)*unitHeight));
+					//center=new Point2D.Float(init.x+(int)(Math.sqrt(w)*unitWidth*.5), init.y+(int)(Math.sqrt(w)*unitHeight*.5));
+					center=new Point2D.Float(init.x+(float)(Math.sqrt(w)*unitWidth*.5), init.y+(float)(Math.sqrt(w)*unitHeight*.5));
 					
-					//if fitting, because it's occupied, if not, because it's out of boundingPolygon, we add the square and inits
-					//inits.remove(cont);
-					//add up to two new inits
-					Point2D.Float np=new Point2D.Float(init.x+r.width, init.y);
-					if(init.x+r.width<x0+boundingPolygon.getBounds().width && !inits.contains(np))
-						inits.add(np);
-						
-					np=new Point2D.Float(init.x, init.y+r.height);
-					if(init.y+r.height<y0+boundingPolygon.getBounds().height)
-						inits.add(np);
-						
-					if(boundingPolygon.contains(center))	//this one is good, put position	
+			
+					
+					boolean intersected=false;
+					for(Rectangle2D.Float p:polygons)	if(p.intersects(r))	{intersected=true;break;}
+					
+					if(boundingPolygon.contains(center) && !intersected)	//this one is good, put position	
 						{
+						//if fitting, because it's occupied, if not, because it's out of boundingPolygon, we add the square and inits
+						//inits.remove(cont);
+						//add up to two new inits
+						Point2D.Float np=new Point2D.Float(init.x+r.width, init.y);
+						if(np.x<x0+boundingPolygon.getBounds().width && !inits.contains(np))
+							inits.add(np);
+							
+						np=new Point2D.Float(init.x, init.y+r.height);
+						//if(init.y+r.height<y0+boundingPolygon.getBounds().height)
+						if(np.y<y0+boundingPolygon.getBounds().height)
+								inits.add(np);
+						
 						currentCells[i].position[0]=center.x;
 						currentCells[i].position[1]=center.y;
+						if(mode==1)					//System.out.println("Placing "+i+" with area "+r.width+", "+r.height+ " at "+center.x+", "+center.y);
+							System.out.println("Placing "+i+" with area "+r.width+", "+r.height+" and weight "+w+" at "+init.x+", "+init.y);
 						
 						sumArea+=r.width*r.height;
 						//TODO: check that the added polygon did not swallow some inits
@@ -721,76 +815,195 @@ public void reweighting()
 								}
 							}
 						
+						polygons.add(new Rectangle2D.Float(init.x, init.y, r.width, r.height));
+						
 						break;
 						}
-					
-					
 					//cont++;
-					}
+					}//for each init
 				
-				//if(cont>inits.size())	//we ran out of positions, need to rescale
-				if(inits.size()==0)
+				if(currentCells[i].position[0]==-1000000)
 					{
 					if(mode==1) System.out.println("Rescaling, not fitted at "+i+" with "+unitWidth+", "+unitHeight);
-					unitWidth*=0.99;
-					unitHeight*=0.99;
+					unitWidth*=0.9;
+					unitHeight*=0.9;
 					
 					fitting=false;
-					i=currentCells.length;
 					break;
 					}
-				}
+				}//for each cell
 			}
 		return;
 		}
-	/*
-	public void weightedGridPlacement()
-	{
-	int sumWeight=0;
-	for(Cell c:currentCells)	sumWeight+=c.weight;
 	
-	double unitWidth=boundingPolygon.getBounds().width/Math.sqrt(sumWeight);
-	double unitHeight=boundingPolygon.getBounds().height/Math.sqrt(sumWeight);
-	int x0=boundingPolygon.getBounds().x;
-	int y0=boundingPolygon.getBounds().y;
-	int x=x0;
-	int y=y0;
-	boolean fitting=false;
-	while(!fitting)
+	 */
+	public void weightedPolygonPlacement()
 		{
-		fitting=true;
-		x=x0;
-		y=y0;
-		for(int i=0;i<currentCells.length;i++)	//For each cell
-			{
-			if(mode==1)	if(i>0)	System.out.println("cell "+(i-1)+"\t"+currentCells[i-1].weight+"\tposition "+currentCells[i-1].position[0]+", "+currentCells[i-1].position[1]);
-			currentCells[i].position[0]=-1000000;
-			currentCells[i].position[1]=-1000000;
-			float w=currentCells[i].weight;
+		int sumWeight=0;
+		for(Cell c:currentCells)	sumWeight+=c.weight;
+		double unitWidth=boundingPolygon.getBounds().width/Math.sqrt(sumWeight);
+		double unitHeight=boundingPolygon.getBounds().height/Math.sqrt(sumWeight);
+		ArrayList<Rectangle2D.Float> polygons=new ArrayList<Rectangle2D.Float>(); //polygons reserved for each point
 				
-			while(w>0 || !boundingPolygon.contains(currentCells[i].position[0], currentCells[i].position[1]))//If it's not inside the polygon, go to next cross in the grid 
-					{																						//We added w>0 to increase also as many times as its weight
-					if(x+unitWidth*0.5>x0+boundingPolygon.getBounds().width)	//If we reach the end of a row, go to next
-						{
-						y+=unitHeight;
-						if(y+unitHeight*0.5>y0+boundingPolygon.getBounds().height)	//If we reach the last cross in the grid, reduce scale and retry
-							{
-							//System.out.println("cell "+i+" need to refactor, unitW and H"+unitWidth+", "+unitHeight);
-							unitWidth=0.99*unitWidth;
-							unitHeight=0.99*unitHeight;
-							fitting=false; 
-							break;
-							}
-						x=x0;
-						}
-					currentCells[i].position[0]=(float)(x+unitWidth*0.5);
-					currentCells[i].position[1]=(float)(y+unitHeight*0.5);
-					x+=unitWidth;
-					//w--;
-					}
-				}
+		if(unitWidth==0 || unitHeight==0)
+			{
+			//System.err.println("Empty starting area");
+			return;
 			}
-	return;
+		int x0=boundingPolygon.getBounds().x;
+		int y0=boundingPolygon.getBounds().y;
+		boolean fitting=false;
+		ArrayList<Placement> inits=new ArrayList<Placement>();
+		
+		if(mode==1)	
+			System.out.println("Placement for subterms of "+this.currentName);
+		
+		float sumArea=0;
+		
+		while(!fitting)
+			{
+			inits.clear();
+			polygons.clear();
+			//inits.add(new Point2D.Float(x0,y0));
+			for(int j=0;j<boundingPolygon.npoints;j++)
+				inits.addAll(getAllPlacements(new Point2D.Float(boundingPolygon.xpoints[j],boundingPolygon.ypoints[j])));
+			
+			fitting=true;
+			for(Cell c: currentCells)
+				sumArea+=Math.sqrt(c.weight)*unitWidth*Math.sqrt(c.weight)*unitHeight;
+			if(mode==1)
+				{
+				System.out.println("Unit width and height: "+unitWidth+", "+unitHeight);
+				System.out.println("Bounds: "+boundingPolygon.getBounds().width+", "+boundingPolygon.getBounds().height);
+				System.out.println("Total area is "+boundingPolygon.getBounds().width*boundingPolygon.getBounds().height);
+				System.out.println("Total polygonal area is "+new MPolygon(boundingPolygon).area());
+				System.out.println("Total subcells area is "+sumArea);
+				if(Double.isNaN(sumArea))
+					System.out.println("sumArea is Nan!!!");
+				}
+			sumArea=0;
+		
+			//for(int i=0;i<currentCells.length;i++)	//For each cell
+			for(int i=currentCells.length-1; i>=0;i--)
+				{
+				currentCells[i].position[0]=-1000000;
+				currentCells[i].position[1]=-1000000;
+				float w=currentCells[i].weight;
+				Point2D.Float center=new Point2D.Float(-1000000,-1000000);
+				//if(mode==1)					System.out.println("Placing "+i+" with weight "+w);
+				
+				//int cont=0;
+				while(inits.size()>0)
+					{
+					Placement pinit=inits.remove(0);
+					Point2D.Float init=pinit.point;
+					
+					float incx=(float)(Math.sqrt(w)*unitWidth);
+					float incy=(float)(Math.sqrt(w)*unitHeight);
+					Rectangle2D.Float r=null;
+					
+					switch(pinit.direction)
+						{
+						case Placement.DOWN_RIGHT:
+							r=new Rectangle2D.Float(init.x,init.y,incx,incy);
+							break;
+						case Placement.DOWN_LEFT:
+							r=new Rectangle2D.Float(init.x-incx,init.y,incx,incy);
+							break;
+						case Placement.UP_RIGHT:
+							r=new Rectangle2D.Float(init.x,init.y-incy,incx,incy);
+							break;
+						case Placement.UP_LEFT:
+							r=new Rectangle2D.Float(init.x-incx,init.y-incy,incx,incy);
+							break;
+						}
+					center=new Point2D.Float((float)r.getCenterX(), (float)r.getCenterY());
+					//TO CONTINUE...
+					
+			
+					
+					boolean intersected=false;
+					for(Rectangle2D.Float p:polygons)	if(p.intersects(r))	{intersected=true;break;}
+					
+					if(boundingPolygon.contains(center) && !intersected)	//this one is good, put position	
+						{
+						//if fitting, because it's occupied, if not, because it's out of boundingPolygon, we add the square and inits
+						//inits.remove(cont);
+						
+						//add up to three new inits
+						Point2D.Float np=new Point2D.Float(r.x+r.width, r.y);
+						if(np.x<x0+boundingPolygon.getBounds().width && !inits.contains(np))
+							inits.addAll(getAllPlacements(np));	//some will be impossible, but it will be determined later on
+							
+						np=new Point2D.Float(r.x, r.y+r.height);
+						if(np.y<y0+boundingPolygon.getBounds().height)
+							inits.addAll(getAllPlacements(np));
+						
+						np=new Point2D.Float(r.x+r.width, r.y+r.height);
+						if(np.y<y0+boundingPolygon.getBounds().height && np.x<x0+boundingPolygon.getBounds().width)
+							inits.addAll(getAllPlacements(np));
+						
+						currentCells[i].position[0]=center.x;
+						currentCells[i].position[1]=center.y;
+						if(mode==1)					//System.out.println("Placing "+i+" with area "+r.width+", "+r.height+ " at "+center.x+", "+center.y);
+							System.out.println("Placing "+i+" with area "+r.width+", "+r.height+" and weight "+w+" at "+init.x+", "+init.y);
+						
+						sumArea+=r.width*r.height;
+						//Check that the added polygon did not swallow some inits
+						for(int k=0;k<inits.size();k++)
+							{
+							if(r.contains(inits.get(k).point))	
+								{
+								if(mode==1) System.out.println("point "+k+" swallowed, removing");
+								inits.remove(k);
+								}
+							}
+						
+						polygons.add(new Rectangle2D.Float(init.x, init.y, r.width, r.height));
+						
+						break;
+						}
+					//cont++;
+					}//for each init
+				
+				if(currentCells[i].position[0]==-1000000)
+					{
+					if(mode==1) System.out.println("Rescaling, not fitted at "+i+" with "+unitWidth+", "+unitHeight);
+					unitWidth*=0.9;
+					unitHeight*=0.9;
+					
+					fitting=false;
+					break;
+					}
+				}//for each cell
+			}
+		return;
+		}
+	
+	private class Placement
+		{
+		public Point2D.Float point;
+		public int direction;
+		public static final int UP_LEFT=0;
+		public static final int UP_RIGHT=1;
+		public static final int DOWN_LEFT=2;
+		public static final int DOWN_RIGHT=3;
+		public Placement(Point2D.Float p, int d)
+			{
+			point=p;
+			direction=d;
+			}
+		}
+	/**
+	 * All possible placements of a polygon with a point p as initial point
+	 * @param p
+	 * @return
+	 */
+	private ArrayList<Placement> getAllPlacements(Point2D.Float p)
+		{
+		ArrayList<Placement> pl=new ArrayList<Placement>();
+		for(int i=0;i<4;i++)
+			pl.add(new Placement(p, i));
+		return pl;
+		}
 	}
-	*/
-}

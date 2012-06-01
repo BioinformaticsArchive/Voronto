@@ -122,6 +122,7 @@ public class VoronoiVisualization extends PApplet{
 	private JFrame heatframe;
 	private CellHeatmap gh;
 	private int textSize=20;
+	private DifExpSearch deSearchFrame;
 //	private final int MAX_TEXT_SIZE=8;
 //	private final int MIN_TEXT_SIZE=20;
 	
@@ -354,7 +355,9 @@ public class VoronoiVisualization extends PApplet{
 			strokeWeight(getWidth(s)+3);
 			
 			noFill();
-			s.region.draw(this);
+			if(s.region!=null)	s.region.draw(this);
+			//else				
+			//	System.err.println("Region '"+s.term.name+"' exists but has zero area!!");
 			strokeWeight(0);
 			}
 		
@@ -817,7 +820,8 @@ public void mouseReleased() {
 				heatframe.setVisible(true);
 				heatframe.setResizable(false);
 				heatframe.setLocation(x, y);
-				
+				if(minHoveredCell.term.geneExs==null || minHoveredCell.term.geneExs.values().iterator().next().size()!=expData.getNumConditions())
+					minHoveredCell.computeExpressionProfile(expData);
 				gh=new CellHeatmap(minHoveredCell, font, this);
 				heatframe.setTitle(minHoveredCell.term.name);
 				heatframe.setSize(gh.getWidth(), gh.getHeight()+22);
@@ -1145,24 +1149,15 @@ public void keyReleased()
 			setOntologyName();
 			break;
 		case 10://enter
-			//noteLabel="Computing tessellation";
-			//redraw();
-			
 			searchedCells.clear();
 			
 			//dig deep into hierarchy
 			//0) get hovered cell
 			Cell cell=null;
-			for(Cell c:hoveredCells)
-				if(c.level==this.levelThreshold)
-					{
-					System.out.println("Selected is "+c.term.name);
-					cell=c;
-					}
+			if(minHoveredCell!=null)	cell=minHoveredCell;
 			
 			//1) perform Benrhardt tessellation under it (to max 2 depth level again?)
 			if(cell==null)	{System.err.println("No hovered cell"); return;}
-			//if(cell.subcells==null || cell.subcells.length==0)	{System.err.println("Leaf cell, no further voronoi map"); return;}
 			if(getMap(map, cell.term).size()<=1)	
 				{
 				System.err.println("Leaf cell, no further voronoi map");
@@ -1171,9 +1166,6 @@ public void keyReleased()
 				}
 			
 			try{tessellate(cell.term);}catch(Exception e){e.printStackTrace();}
-			
-			//noteLabel=helpMessage;
-			//redraw();
 			
 			break;
 			
@@ -1265,6 +1257,19 @@ public void keyReleased()
 			searchPApplet.requestFocusInWindow();
 			
 			drawSearch=false;
+			break;
+		case 'd':	//difexp searcher
+			if(deSearchFrame==null)
+				{
+				deSearchFrame=new DifExpSearch(this);
+				deSearchFrame.setUndecorated(true);
+				deSearchFrame.requestFocusInWindow();
+				}
+			else if(deSearchFrame.isVisible())	{deSearchFrame.setVisible(false); return;}
+			
+			deSearchFrame.setLocation((int)(voronto.getLocation().x+this.width*0.5-deSearchFrame.getWidth()*0.5), (int)(voronto.getLocation().y+this.height*0.5-deSearchFrame.getHeight()*0.5));
+			deSearchFrame.setVisible(true);
+			
 			break;
 		case 'h':	//helper
 			try{
@@ -1369,7 +1374,7 @@ public void mouseMoved() {
 		if(scaleBox!=null && scaleBox.contains(mouseX, mouseY))
 			hoveredBox=SCALE;
 		}
-
+	
     // update the screen (run draw once)
     redraw();
 	}
@@ -1436,7 +1441,10 @@ public void mapExpression(ExpressionData md)
 	Cell[] cells=v.getCells();
 	for(Cell c:cells)
 		{
+		//long t1=System.currentTimeMillis();
+		//System.out.println("recursive mapping for "+c.term.name+" with "+c.term.geneIds.size()+" annot genes");
 		recursiveExpressionMapping(c, md);
+		//System.out.println("it took "+(System.currentTimeMillis()-t1)/1000.0);
 		}
 	System.out.println("Mapping expression to ontology takes "+(System.currentTimeMillis()-t)/1000.0);
 	return;
@@ -1491,24 +1499,29 @@ public void expression2color(ExpressionData md, int col)
 
 public void recursiveExpressionMapping(Cell cell, ExpressionData md)
 	{
+	if(cell.expressionLevel.size()==md.getNumConditions())	
+		return; //already computed (in GO, we can find inside loops!)
+
 	cell.computeExpression(md, type);
 	if(cell.subcells!=null && cell.subcells.length>0)	//for internal nodes
 		{
 		for(Cell cc:cell.subcells)
+			{
+			//System.out.println("recursive mapping for "+cc.term.name);//it gets into an infinite loop in biological regulation!!!
 			recursiveExpressionMapping(cc, md);
-	
-		cell.computeExpressionFromChildren(md);
+			}
+		//cell.computeExpressionFromChildren(md);
 		}
-	else			//for leaf nodes
+	/*else			//for leaf nodes
 		{
 		//1) Compute expression
 		//long t=System.currentTimeMillis();
 		cell.computeExpression(md,type);
 		//System.out.println("Compute expression for "+cell.term.name+" takes "+(System.currentTimeMillis()-t)/1000.0);
 		//2) Check max deviation //TODO: working in KO, not in GO. Discuss if it benefits somehow
-		/*for(int i=0;i<md.getNumConditions();i++)
-			if(maxSd[i]<cell.expressionDeviation.get(i))	maxSd[i]=cell.expressionDeviation.get(i);*/
-		}
+		//for(int i=0;i<md.getNumConditions();i++)
+			//if(maxSd[i]<cell.expressionDeviation.get(i))	maxSd[i]=cell.expressionDeviation.get(i);
+		}*/
 		
 	return;
 	}
@@ -1683,13 +1696,65 @@ public void search(String searchText) {
 	if(searchText==null || searchText.length()==0)	{redraw(); return;}
 	
 	for(Cell c:cells)
-		searchedCells.addAll(recursiveSearch(c, searchText));
+		searchedCells.addAll(recursiveSearch(c, searchText, 0));
 	System.out.println("Found "+searchedCells.size()+" occurrences");
 	redraw();
 	return;
 }
 
-public ArrayList<Cell> recursiveSearch(Cell cell, String searchText)
+/**
+ * Searches terms that are differentially expressed on conditions g1 respect to conditions g2
+ * Type tells if they must be upreg on g1 respect to g2 (0) or the other way round (1)
+ * @param g1
+ * @param g2
+ * @param type
+ */
+public void deSearch(int[] g1, int[] g2, int type, float threshold) {
+	// TODO Auto-generated method stub
+	deSearchFrame.setVisible(false);
+	System.out.println("Expression Search...");
+	searchedCells.clear();
+	
+	if(g1==null || g1.length==0 || g2==null || g2.length==0)	{redraw(); return;}
+	
+	for(Cell c:cells)
+		searchedCells.addAll(recursiveDESearch(c, g1, g2, type, threshold, 0));
+	System.out.println("Found "+searchedCells.size()+" occurrences");
+	redraw();
+	return;
+	}
+
+public ArrayList<Cell> recursiveDESearch(Cell cell, int[] g1, int[] g2, int type, float threshold, int level)
+	{
+	ArrayList<Cell> retList=new ArrayList<Cell>();
+	if(cell.subcells!=null && cell.subcells.length>0)
+		{
+		boolean add=false;
+		for(Cell c:cell.subcells)
+			{
+			ArrayList<Cell> sublist=recursiveDESearch(c,g1, g2, type, threshold, level+1);
+			retList.addAll(sublist);
+			if(sublist.size()>0)	add=true;
+			}
+		if((add && level<=this.levelThreshold))
+			retList.add(cell);
+		}
+	
+	double e1=0;
+	for(int i:g1)			e1+=cell.expressionLevel.get(i);
+	double e2=0;
+	for(int i:g2)			e2+=cell.expressionLevel.get(i);
+	e1/=g1.length; e2/=g2.length;
+	
+	if(type==0 && e1>e2+threshold)	//TODO: must add some threshold
+		retList.add(cell);
+	else if(type==1 && e2>e1+threshold)
+		retList.add(cell);
+	
+	return retList;
+	}
+
+public ArrayList<Cell> recursiveSearch(Cell cell, String searchText, int level)
 	{
 	ArrayList<Cell> retList=new ArrayList<Cell>();
 	if(cell.subcells==null || cell.subcells.length==0)
@@ -1702,10 +1767,15 @@ public ArrayList<Cell> recursiveSearch(Cell cell, String searchText)
  		}
 	else
 		{
-		if(cell.term.name.toLowerCase().contains(searchText.toLowerCase()) || cell.term.id.toLowerCase().contains(searchText.toLowerCase()))
-			retList.add(cell);
+		boolean add=false;
 		for(Cell c:cell.subcells)
-			retList.addAll(recursiveSearch(c,searchText));
+			{
+			ArrayList<Cell> sublist=recursiveSearch(c,searchText, level+1);
+			retList.addAll(sublist);
+			if(sublist.size()>0)	add=true;
+			}
+		if((add && level<=this.levelThreshold) || cell.term.name.toLowerCase().contains(searchText.toLowerCase()) || cell.term.id.toLowerCase().contains(searchText.toLowerCase()))
+			retList.add(cell);
 		}
 	return retList;
 	}

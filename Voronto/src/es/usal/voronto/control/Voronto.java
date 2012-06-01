@@ -284,6 +284,7 @@ public void launch(String expressionFile, String ontologyFile, int ontology)
 		bw.close();
 		}
 	
+	gv=null;
 	task = new Task(expressionFile, ontologyFile, ontology, this);
 	task.addPropertyChangeListener(this);
 	task.execute();
@@ -330,7 +331,7 @@ public void propertyChange(PropertyChangeEvent evt) {
             if (progressMonitor.isCanceled()) 
             	{
                 task.cancel(true);
-                taskOutput.append("Task canceled.\n");
+                taskOutput.append("Task cancelled.\n");
             	}
             else if(gv!=null)
             	{

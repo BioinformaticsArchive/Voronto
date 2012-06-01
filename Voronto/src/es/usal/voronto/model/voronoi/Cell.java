@@ -19,7 +19,7 @@ public class Cell implements Cloneable {
 	public float weight;//weight assigned to the cell
 	public float[] position;//location for voronoi diagram construction
 	public float[] centroid;//centroid of its region polygon
-	public OntologyTerm term;
+	public OntologyTerm term;//term.geneIds must assure that contains every directly annotated gene plus every annotated gene in its subterms (without duplicates)
 	public MPolygon region;
 	public double desiredArea; //desired area based on initial weights
 	public double areaRatio; //ro_i on Bernhardt et al. paper it's a measure of the difference between the desired and the actual area.
@@ -121,7 +121,7 @@ public class Cell implements Cloneable {
 	 * @param md
 	 * @return
 	 */
-	public int getNumMatchedKOTerms(ExpressionData md)
+	public int getNumMatchedKOTerms(ExpressionData md)	//too slow compared with GO now
 		{
 		int cont=0;
 		ArrayList<String> spcids=new ArrayList<String>();
@@ -162,7 +162,7 @@ public class Cell implements Cloneable {
 		int cont=0;
 		for(String id:term.geneIds)
 			{
-			if((Arrays.asList(md.geneNames).indexOf(id))>=0)
+			if(Arrays.binarySearch(md.sortedGeneNames, id.toLowerCase())>=0)
 				cont++;
 			}
 		
@@ -229,6 +229,38 @@ public class Cell implements Cloneable {
 			}
 		}
 	
+	public void computeExpressionProfile(ExpressionData md)
+		{
+		//0) Prepare cell expression data structure for gene in the cell and the expression data
+		if(term.geneExs==null || term.geneExs.size()==0)
+			{
+			for(String id:term.geneIds)
+				{
+				if(Arrays.binarySearch(md.sortedGeneNames, id.toLowerCase())>=0)
+					term.geneExs.put(id, new ArrayList<Float>());
+				}
+			}
+	
+		if(term.geneExs.size()>0)
+			{
+			Iterator<String> it=term.geneExs.keySet().iterator();
+			while(it.hasNext())			
+				{
+				String i=it.next();
+				double[] temp=md.getExpressionProfile(md.getGeneId(i));
+				
+				ArrayList<Float> profile=term.geneExs.get(i);
+				for(int k=0;k<md.getNumConditions();k++)	
+					{
+					float level=(float)temp[k];
+					profile.add(level);//NOTE: memory tests
+					}
+				}
+			}
+		
+		return;
+		}
+	
 	public void computeGOExpression(ExpressionData md)
 		{
 		//long t=System.currentTimeMillis();
@@ -239,7 +271,7 @@ public class Cell implements Cloneable {
 		//0) Prepare cell expression data structure for gene in the cell and the expression data
 		for(String id:term.geneIds)
 			{
-			if(Arrays.binarySearch(md.sortedGeneNames, id.toLowerCase())>=0)	//TODO should make everything lower case to avoid problems...
+			if(Arrays.binarySearch(md.sortedGeneNames, id.toLowerCase())>=0)
 				term.geneExs.put(id, new ArrayList<Float>());
 			}
 	
@@ -253,12 +285,12 @@ public class Cell implements Cloneable {
 				{
 				String i=it.next();
 				double[] temp=md.getExpressionProfile(md.getGeneId(i));
-				//float[] temp=md.getAverageExpressionProfile(md.getGeneIds(i));//in the case we have repeated ids or something (not supported yet, and slow)
+				
 				ArrayList<Float> profile=term.geneExs.get(i);
 				for(int k=0;k<md.getNumConditions();k++)	
 					{
 					float level=(float)temp[k];
-					profile.add(level);
+					//profile.add(level);//NOTE: memory tests
 					e[k]+=level;
 					}
 				}

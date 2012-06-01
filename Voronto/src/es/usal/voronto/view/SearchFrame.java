@@ -38,6 +38,7 @@ public class SearchFrame extends PApplet{
 		text("Search for:",(int)(width*0.5),5);
 		text(searchText,(int)(width*0.5),25);
 		}
+	
 	public void keyReleased()
 		{
 		switch(keyCode)

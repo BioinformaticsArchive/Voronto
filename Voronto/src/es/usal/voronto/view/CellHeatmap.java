@@ -61,7 +61,8 @@ public class CellHeatmap extends PApplet
 			return;
 			}
 		numRows=cell.term.geneExs.size();
-		//numCols=cell.term.geneExs.get(cell.term.geneIds.get(0)).size();
+		
+		//cell.completeWithChildren();
 		numCols=cell.term.geneExs.get(cell.term.geneExs.keySet().iterator().next()).size();
 		
 		this.font=font;
