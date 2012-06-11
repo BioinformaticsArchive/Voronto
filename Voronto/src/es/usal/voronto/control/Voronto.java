@@ -78,6 +78,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
 			 	Long time=System.currentTimeMillis();
 			 	Long time2;
 			 	message=null;
+			 	this.
 	            setProgress(1);
 	           // message="Building Voronto visualization";
 	           // setProgress(5);
@@ -301,13 +302,10 @@ public void goBack()
 	{
 	remove(gv);
 	
-	//expressionPath="";
-	//ontologyPath="";
 	intro.reset();
 	
 	add(intro);
-	add(new JScrollPane(taskOutput), BorderLayout.SOUTH);
-    this.setResizable(true);
+	this.setResizable(true);
     this.setTitle("Voronto");
 	
     intro.requestFocusInWindow();

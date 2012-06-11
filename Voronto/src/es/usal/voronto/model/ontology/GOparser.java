@@ -2,6 +2,7 @@ package es.usal.voronto.model.ontology;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -33,8 +34,16 @@ public class GOparser {
 	
 	public static void main(String[] args)
 		{
-		GOparser.map("/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/data/calbicans/annotations/gene_association.cgd", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/gobiological_process-calbicans_gene_ensembl.map");
+		File dir=new File("/Users/rodri/Desktop/goa");
+		for(File f:dir.listFiles())
+			{
+			String s=f.getAbsolutePath();
+			if(s.contains("gene_association.goa"))
+				GOparser.map(s, "/Users/rodri/desktop/goa/mini/gobiological_process-"+s.substring(s.indexOf(".goa")+5)+".map");
+			}
+		//GOparser.map("/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/data/calbicans/annotations/gene_association.cgd", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/gobiological_process-calbicans_gene_ensembl.map");
 		}
+	
 	private static List<OntologyTerm> lot;
 
 	/**
@@ -249,7 +258,7 @@ public class GOparser {
 		}
 
 	/**
-	 * Takes a GAF file and generated a map from it (basically the same file, but smaller)
+	 * Takes a GAF file and generatesmi a map from it (basically the same file, but smaller)
 	 * 
 	 * @param gafFilePath
 	 */
@@ -320,19 +329,25 @@ public class GOparser {
 		for(int i=0;i<fields.length;i++)
 			if(fields[i].equals(gene_id))	{id=i; break;}
 		
+		if(id==-1)
+			{
+			String s="Gene id '"+gene_id+"' is not supported for this GO map, please use one of these:\n";
+			for(int i=1;i<fields.length;i++)	s+="\t"+fields[i];
+			
+			throw new Exception(s);
+			}
+		
 		String cad;
 		TreeMap<String, ArrayList<String>> annotations=new TreeMap<String, ArrayList<String>>();
 		TreeSet<String> mappedGenes=new TreeSet<String>();
 		while((cad=in.readLine())!=null)
 			{
-			fields=cad.split("\t");	
-			if(fields[id].length()>0 && !fields[id].equals("NA"))	//add the annotation to a data structure
+			fields=cad.split("\t");
+			if(fields!=null && fields[id].length()>0 && !fields[id].equals("NA"))	//add the annotation to a data structure
 				{
 				if(annotations.get(fields[0])==null)
 					annotations.put(fields[0], new ArrayList<String>());
 				annotations.get(fields[0]).add(fields[id]);
-				//if(!mappedGenes.contains(fields[id].toLowerCase()))	mappedGenes.add(fields[id].toLowerCase());
-				//if(Arrays.binarySearch(mappedGenes.toArray(new String[0]), fields[id].toLowerCase())<0)	
 				mappedGenes.add(fields[id].toLowerCase());
 				}
 			}
@@ -341,24 +356,12 @@ public class GOparser {
 		if(ed!=null)
 			{
 			int nomap=0;
-			/*System.out.println("Genes in the annotations but not in the expression data:");
-			for(String mg:mappedGenes)
-				if(Arrays.binarySearch(ed.sortedGeneNames, mg)<0)
-					{
-					System.out.println(mg);
-					nomap++;
-					}
-			System.out.println("TOTAL: "+nomap);
 			
-			nomap=0;*/
-			//System.out.println("Genes in the expression data but not annotated:");
 			for(String mg:ed.sortedGeneNames)
 				if(!mappedGenes.contains(mg))
 					{
-					//System.out.println(mg);
 					nomap++;
 					}
-			//System.out.println("TOTAL: "+nomap);
 			System.out.println("Genes in the expression data but not annotated: "+nomap);
 			}
 		//---

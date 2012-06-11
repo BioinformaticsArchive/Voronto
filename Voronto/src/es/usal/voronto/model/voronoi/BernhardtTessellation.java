@@ -716,127 +716,7 @@ public void reweighting()
 		}
 	return;
 	}
-	/*
-	 * public void weightedPolygonPlacement()
-		{
-		int sumWeight=0;
-		for(Cell c:currentCells)	sumWeight+=c.weight;
-		double unitWidth=boundingPolygon.getBounds().width/Math.sqrt(sumWeight);
-		double unitHeight=boundingPolygon.getBounds().height/Math.sqrt(sumWeight);
-		ArrayList<Rectangle2D.Float> polygons=new ArrayList<Rectangle2D.Float>(); //polygons reserved for each point
-				
-		if(unitWidth==0 || unitHeight==0)
-			{
-			//System.err.println("Empty starting area");
-			return;
-			}
-		int x0=boundingPolygon.getBounds().x;
-		int y0=boundingPolygon.getBounds().y;
-		boolean fitting=false;
-		ArrayList<Point2D.Float> inits=new ArrayList<Point2D.Float>();
-		
-		if(mode==1)	
-			System.out.println("Placement for subterms of "+this.currentName);
-		
-		float sumArea=0;
-		
-		while(!fitting)
-			{
-			inits.clear();
-			polygons.clear();
-			//inits.add(new Point2D.Float(x0,y0));
-			for(int j=0;j<boundingPolygon.npoints;j++)
-				inits.add(new Point2D.Float(boundingPolygon.xpoints[j],boundingPolygon.xpoints[j]));
-			fitting=true;
-			for(Cell c: currentCells)
-				sumArea+=Math.sqrt(c.weight)*unitWidth*Math.sqrt(c.weight)*unitHeight;
-			if(mode==1)
-				{
-				System.out.println("Unit width and height: "+unitWidth+", "+unitHeight);
-				System.out.println("Bounds: "+boundingPolygon.getBounds().width+", "+boundingPolygon.getBounds().height);
-				System.out.println("Total area is "+boundingPolygon.getBounds().width*boundingPolygon.getBounds().height);
-				System.out.println("Total polygonal area is "+new MPolygon(boundingPolygon).area());
-				System.out.println("Total subcells area is "+sumArea);
-				}
-			sumArea=0;
-		
-			//for(int i=0;i<currentCells.length;i++)	//For each cell
-			for(int i=currentCells.length-1; i>=0;i--)
-				{
-				currentCells[i].position[0]=-1000000;
-				currentCells[i].position[1]=-1000000;
-				float w=currentCells[i].weight;
-				Point2D.Float center=new Point2D.Float(-1000000,-1000000);
-				//if(mode==1)					System.out.println("Placing "+i+" with weight "+w);
-				
-				//int cont=0;
-				//while(cont < inits.size())//keep trying
-				while(inits.size()>0)
-					{
-					//Point2D.Float init=inits.get(cont);//get one possible init
-					Point2D.Float init=inits.remove(0);//get one possible init
-					
-					Rectangle2D.Float r=new Rectangle2D.Float(init.x,init.y,(float)(Math.sqrt(w)*unitWidth),(float)(Math.sqrt(w)*unitHeight));
-					//center=new Point2D.Float(init.x+(int)(Math.sqrt(w)*unitWidth*.5), init.y+(int)(Math.sqrt(w)*unitHeight*.5));
-					center=new Point2D.Float(init.x+(float)(Math.sqrt(w)*unitWidth*.5), init.y+(float)(Math.sqrt(w)*unitHeight*.5));
-					
-			
-					
-					boolean intersected=false;
-					for(Rectangle2D.Float p:polygons)	if(p.intersects(r))	{intersected=true;break;}
-					
-					if(boundingPolygon.contains(center) && !intersected)	//this one is good, put position	
-						{
-						//if fitting, because it's occupied, if not, because it's out of boundingPolygon, we add the square and inits
-						//inits.remove(cont);
-						//add up to two new inits
-						Point2D.Float np=new Point2D.Float(init.x+r.width, init.y);
-						if(np.x<x0+boundingPolygon.getBounds().width && !inits.contains(np))
-							inits.add(np);
-							
-						np=new Point2D.Float(init.x, init.y+r.height);
-						//if(init.y+r.height<y0+boundingPolygon.getBounds().height)
-						if(np.y<y0+boundingPolygon.getBounds().height)
-								inits.add(np);
-						
-						currentCells[i].position[0]=center.x;
-						currentCells[i].position[1]=center.y;
-						if(mode==1)					//System.out.println("Placing "+i+" with area "+r.width+", "+r.height+ " at "+center.x+", "+center.y);
-							System.out.println("Placing "+i+" with area "+r.width+", "+r.height+" and weight "+w+" at "+init.x+", "+init.y);
-						
-						sumArea+=r.width*r.height;
-						//TODO: check that the added polygon did not swallow some inits
-						for(int k=0;k<inits.size();k++)
-							{
-							if(r.contains(inits.get(k)))	
-								{
-								if(mode==1) System.out.println("point "+k+" swallowed, removing");
-								inits.remove(k);
-								}
-							}
-						
-						polygons.add(new Rectangle2D.Float(init.x, init.y, r.width, r.height));
-						
-						break;
-						}
-					//cont++;
-					}//for each init
-				
-				if(currentCells[i].position[0]==-1000000)
-					{
-					if(mode==1) System.out.println("Rescaling, not fitted at "+i+" with "+unitWidth+", "+unitHeight);
-					unitWidth*=0.9;
-					unitHeight*=0.9;
-					
-					fitting=false;
-					break;
-					}
-				}//for each cell
-			}
-		return;
-		}
-	
-	 */
+
 	public void weightedPolygonPlacement()
 		{
 		int sumWeight=0;
@@ -918,9 +798,7 @@ public void reweighting()
 							break;
 						}
 					center=new Point2D.Float((float)r.getCenterX(), (float)r.getCenterY());
-					//TO CONTINUE...
-					
-			
+				
 					
 					boolean intersected=false;
 					for(Rectangle2D.Float p:polygons)	if(p.intersects(r))	{intersected=true;break;}

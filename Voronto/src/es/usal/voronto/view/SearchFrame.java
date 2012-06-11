@@ -1,5 +1,7 @@
 package es.usal.voronto.view;
 
+import java.awt.event.KeyEvent;
+
 import processing.core.PApplet;
 import processing.core.PFont;
 
@@ -43,7 +45,12 @@ public class SearchFrame extends PApplet{
 		{
 		switch(keyCode)
 			{
-		//TODO: escape
+			case KeyEvent.VK_ESCAPE:
+				vv.search(null);
+				break;
+			//TODO: escape
+			case 16://others (to ignore)
+				return;
 			case 10://enter
 				vv.search(searchText);
 				return;
@@ -53,8 +60,15 @@ public class SearchFrame extends PApplet{
 					searchText=searchText.substring(0, searchText.length()-1);
 				redraw();
 				return;
+			default:
+				searchText=searchText+""+key;
+				redraw();
+				return;
 			}
-		searchText=searchText+""+key;
-		redraw();
 		}
+	public void exit()
+		{
+		System.out.println("Exiting...");
+		}
+
 }

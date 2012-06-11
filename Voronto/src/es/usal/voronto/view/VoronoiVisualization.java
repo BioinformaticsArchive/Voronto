@@ -1,7 +1,9 @@
 package es.usal.voronto.view;
 
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Rectangle;
+import java.awt.event.KeyEvent;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.File;
@@ -355,9 +357,24 @@ public class VoronoiVisualization extends PApplet{
 			strokeWeight(getWidth(s)+3);
 			
 			noFill();
-			if(s.region!=null)	s.region.draw(this);
-			//else				
-			//	System.err.println("Region '"+s.term.name+"' exists but has zero area!!");
+			if(s.region!=null)	
+				{
+				if(s.level<=this.levelThreshold)
+					{
+					boolean draw=true;
+					if(s.subcells!=null)
+						for(Cell s2:s.subcells)
+							{
+							if(searchedCells.contains(s2) && levelThreshold>=s.level+1)
+								{
+								draw=false;
+								break;
+								}
+							}
+						
+					if(draw)	s.region.draw(this);
+					}
+				}
 			strokeWeight(0);
 			}
 		
@@ -836,6 +853,9 @@ public void mouseReleased() {
 			{
 			if(type==KEGG)
 				{
+				Cursor hourglassCursor = new Cursor(Cursor.WAIT_CURSOR);
+				setCursor(hourglassCursor);
+				
 				for(Cell c:hoveredCells)
 					{
 					if(c.subcells==null || c.subcells.length==0)
@@ -1008,6 +1028,10 @@ public void mouseReleased() {
 						}
 					}//for each hovered cell (usually one)
 				redraw();
+				
+				Cursor normalCursor = new Cursor(Cursor.DEFAULT_CURSOR);
+				setCursor(normalCursor);
+				
 				}//if KEGG
 			else if(type==GO)
 				{
@@ -1149,6 +1173,7 @@ public void keyReleased()
 			setOntologyName();
 			break;
 		case 10://enter
+			
 			searchedCells.clear();
 			
 			//dig deep into hierarchy
@@ -1165,7 +1190,13 @@ public void keyReleased()
 				return;
 				}
 			
+			Cursor hourglassCursor = new Cursor(Cursor.WAIT_CURSOR);
+			setCursor(hourglassCursor);
+			
 			try{tessellate(cell.term);}catch(Exception e){e.printStackTrace();}
+			
+			Cursor normalCursor = new Cursor(Cursor.DEFAULT_CURSOR);
+			setCursor(normalCursor);
 			
 			break;
 			
@@ -1192,11 +1223,13 @@ public void keyReleased()
 			break;
 			
 		default:
-			//System.out.println(keyCode);
+			System.out.println(keyCode);
 			break;
 		}
 	switch(key)
 		{
+		case KeyEvent.VK_ESCAPE:
+			break;
 		case 's'://change scale
 			//SCALE_MODE=(SCALE_MODE+1)%3;
 			SCALE_MODE=(SCALE_MODE+1)%2;	//no ontology mode
@@ -1296,6 +1329,11 @@ public void keyReleased()
 	redraw();
 	}
 
+public void exit()
+	{
+	//System.out.println("Exiting...");
+	return;//i don't want esc to close the program
+	}
 /**
  * Computes a new tesselleation with cell as root node
  * @param cell

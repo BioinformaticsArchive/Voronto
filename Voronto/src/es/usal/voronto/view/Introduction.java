@@ -188,7 +188,11 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 								ontologyFile = selecFile.getSelectedFile();
 								jLabel9.setText(ontologyFile.getAbsolutePath());
 								}
-							
+							}
+						else
+							{
+							ontologyFile = null;
+							jLabel9.setText("");
 							}
 						}
 					});
