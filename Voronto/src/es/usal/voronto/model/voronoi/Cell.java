@@ -38,6 +38,7 @@ public class Cell implements Cloneable {
 	public int labelX=-1;
 	public int labelY=-1;
 	public int labelSize=0;
+	public String label;
 	
 	public Cell(float w, float[] p, String n)
 		{
@@ -73,6 +74,7 @@ public class Cell implements Cloneable {
 	centroid=new float[2];
 	term=t;
 	level=l;
+	label=String.copyValueOf(term.name.toCharArray());
 	weight=numLeaves;
 	}	
 	
@@ -95,6 +97,7 @@ public class Cell implements Cloneable {
 		
 		level=c.level;
 		weight=numLeaves;
+		label=String.copyValueOf(c.label.toCharArray());
 		
 		desiredArea=c.desiredArea;
 		areaRatio=c.areaRatio;

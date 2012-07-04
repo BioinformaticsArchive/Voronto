@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="/Applications/Processing.app"/>
 	<classpathentry kind="lib" path="lib/processing/core.jar"/>
 	<classpathentry kind="lib" path="lib/keggapi.jar"/>
@@ -86,5 +85,6 @@
 	<classpathentry kind="lib" path="lib/caBigReactomeClient/reactomews.jar"/>
 	<classpathentry kind="lib" path="lib/caBigReactomeClient/saaj.jar"/>
 	<classpathentry kind="lib" path="lib/caBigReactomeClient/wsdl4j-1.5.1.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

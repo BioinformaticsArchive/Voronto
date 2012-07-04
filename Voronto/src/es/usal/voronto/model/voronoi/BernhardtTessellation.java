@@ -80,7 +80,7 @@ public class BernhardtTessellation {
 		//cells=new Cell[terms.length];
 		ArrayList<Cell> cellsTemp=new ArrayList<Cell>();
 		numLeaves=0;
-	    for(int i=0;i<terms.length;i++)	//Covering leaf childs (only for major nodes)
+	    for(int i=0;i<terms.length;i++)	//Covering leaf children (only for major nodes)
 	    	{
 	    	Cell c=generateRecursiveCell(m.get(terms[i]), terms[i],1);
 	    	if(c!=null)	cellsTemp.add(c);
@@ -207,97 +207,6 @@ public class BernhardtTessellation {
 		}
 	}
 
-	/*
-	public Cell generateRecursiveCell(Map<OntologyTerm, Map> m, OntologyTerm term, int level)
-		{
-		OntologyTerm[] names=null;
-		if(m!=null)	names=m.keySet().toArray(new OntologyTerm[0]);
-		else		return null;
-		
-		//if(names==null || names.length==0 || level==maxDepth)	//no children, end recursion --> level==maxDepth prunes elements that has children but no annotations for them!
-		if(names==null || names.length==0)	//no children, end recursion  -> but without it it takes much more time and might hang tessellation!
-			{
-			if(expData!=null)
-				{
-				Cell c=buildCell(term, level);
-				if(c.weight==0)	return null; //no children and no annotations, so not shown
-				else			return c;
-				}
-			else 
-				{
-				numLeaves++;
-				
-				if(mode==1)	System.out.println("Creating cell "+term.name+" at level "+level);
-				if(term.geneIds==null || term.geneIds.size()==0)	return new Cell(1, term, level);
-				else											
-					{
-				//	System.out.println("Adding leaf node with "+term.geneIds.size()+" genes");
-					return new Cell(term.geneIds.size(), term, level);
-					}
-				}
-			}
-		else	//has children
-			{
-			if(level>maxLevel)
-				{
-				maxLevel=Math.min(maxDepth, level);
-				}
-			ArrayList<Cell> cs=new ArrayList<Cell>();
-			float w=0;
-			float nl=0;
-			for(OntologyTerm n:names)
-				{
-				Cell sc=generateRecursiveCell((Map<OntologyTerm,Map>)(m.get(n)), n, level+1);
-				if(sc!=null)
-					{
-					cs.add(sc);
-					w+=sc.weight;
-					nl+=sc.numLeaves;
-					}
-				}
-			
-			Cell c=null;
-			switch(ontology)
-				{
-				case VoronoiVisualization.GO:		//In GO cases, there can be elements that have annotations that are in no subterms!
-				case VoronoiVisualization.SLIMBP:
-				case VoronoiVisualization.SLIMCC:
-					c=buildCell(term, level);
-					if(cs.size()>0)
-						{
-						c.subcells=cs.toArray(new Cell[0]);
-						c.weight+=w;
-						c.numLeaves+=nl;
-						Comparator<Cell> byWeight=new Voronto.WeightComparator();
-						Arrays.sort(c.subcells, byWeight);
-						}
-					break;
-				case VoronoiVisualization.KEGG:	//In the rest of cases, every annotation is in some of the subterms
-				case VoronoiVisualization.REACTOME:
-				case VoronoiVisualization.CUSTOM:
-				default:
-					c=new Cell(1, term, level);
-					if(cs.size()>0)
-						{
-						c.subcells=cs.toArray(new Cell[0]);
-						c.weight=w;
-						c.numLeaves=nl;
-						Comparator<Cell> byWeight=new Voronto.WeightComparator();
-						Arrays.sort(c.subcells, byWeight);
-						}
-					break;
-				}
-			
-			if(c!=null && c.weight>0)
-				{
-				//c.weight=(int)Math.ceil(Math.log(c.weight)+1);//Testing, to avoid super-big/small differences
-				return c;
-				}
-			else
-				return null;
-			}
-		}*/
-	
 	public void recursiveComputeVoronoi(Cell[] c, int level, Polygon totalArea)
 	{
 //	System.out.println("Computing voronoi for level "+level);
@@ -407,8 +316,12 @@ public class BernhardtTessellation {
 		  if(allZeroAreas)
 			  System.err.println("All areas are zero in this term!!!");
 		  if(kk>0 && (unmatchingAreas || tessellationFailed || tooMuchIncrease || allZeroAreas))
-      	      {
-			  if(mode==1) System.out.println(currentName+": Stop & Rollback");
+		  	  {
+			  if(mode==1) 
+				  {
+				  System.out.println("unmatching areas: "+unmatchingAreas+"\ttessellationFailed"+tessellationFailed+"\ttooMuchIncrease"+tooMuchIncrease+"\tallZeroAreas: "+allZeroAreas);
+				  System.out.println(currentName+": Stop & Rollback");
+				  }
 	    	  for(int i=0;i<cellsAnt.length;i++)		currentCells[i]=new Cell(cellsAnt[i]);	//deep copy
 	    	  tessellationFailed=false;
 	    	  break;
@@ -425,7 +338,8 @@ public class BernhardtTessellation {
 	      //3) Centroidal voronoi tesselation (modifies initial positions in order to make region shapes more regular)
 	      if(mode==1)	System.out.println("3) CVT");
 	      lloydMethod(0.5,0);
-		}//iterative thingy
+	      //lloydMethod(0.01,0);
+			}//iterative thingy
 			
 		//F) Latest centroid computation  
 		computeCentroids();

@@ -34,7 +34,7 @@ public class GOparser {
 	
 	public static void main(String[] args)
 		{
-		File dir=new File("/Users/rodri/Desktop/goa");
+		File dir=new File("/Users/rodri/Desktop/goa/nuevos");
 		for(File f:dir.listFiles())
 			{
 			String s=f.getAbsolutePath();

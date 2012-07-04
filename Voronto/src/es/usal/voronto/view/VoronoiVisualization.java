@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Area;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.io.File;
@@ -125,6 +127,9 @@ public class VoronoiVisualization extends PApplet{
 	private CellHeatmap gh;
 	private int textSize=20;
 	private DifExpSearch deSearchFrame;
+	private Cell selectedCell;
+	private int lineSpacing=0;
+	private boolean skewed=false;
 //	private final int MAX_TEXT_SIZE=8;
 //	private final int MIN_TEXT_SIZE=20;
 	
@@ -150,7 +155,7 @@ public class VoronoiVisualization extends PApplet{
 		super();
 	 	size(width, height);
 		v=new BernhardtTessellation(m, null, 700, 500,/* this,*/ VoronoiVisualization.KEGG, 3);
-		cells=v.getCells();
+		cells=v.getCells(); 
 		for(Cell c:cells)	recursiveRegionTranslation(c, 0, START_Y);
 		}
 	
@@ -195,7 +200,7 @@ public class VoronoiVisualization extends PApplet{
 		{
 		if(root.name.equals("root") && root.id.equals("root"))
 			{
-			if(type==KEGG)	ontologyName="KEGG Orthology ("+this.levelThreshold+")";
+			if(type==KEGG)	ontologyName="KEGG ("+this.levelThreshold+")";
 			else if(type==REACTOME)	ontologyName="REACTOME ("+this.levelThreshold+")";
 			else if(type==SLIMBP)	ontologyName="GO Slim - BP ("+this.levelThreshold+")";
 			else if(type==SLIMCC)	ontologyName="GO Slim - CC ("+this.levelThreshold+")";
@@ -241,19 +246,11 @@ public class VoronoiVisualization extends PApplet{
 
 	public void draw() 
 		{
+		//strokeWeight(0);
+		noStroke();
 		fill(255,255,255);
 		rect(0,0,width,height);
 		noFill();
-		
-		if(v==null)
-			{
-			fill(0);
-			textAlign(CENTER, CENTER);
-			text(message, (int)(width*0.5), (int)(height*0.5));
-			
-			ellipse(50,50,100,100);
-			return;
-			}
 		
 		//drawing labels
 		textFont(font, 14);
@@ -264,14 +261,14 @@ public class VoronoiVisualization extends PApplet{
 			textFont(font);
 			textAlign(LEFT, CENTER);
 			text(expData.organism, 10, 8);
-			
 			organismBox=new Rectangle2D.Float(10,8,getWidth(expData.organism, font), font.getSize());
+			
 			textAlign(RIGHT, CENTER);
 			text(expData.getColumnLabel(selectedCol), width-10, 8);
 			conditionBox=new Rectangle2D.Float(width-10-getWidth(expData.getColumnLabel(selectedCol), font),8, getWidth(expData.getColumnLabel(selectedCol), font), font.getSize());
 			
-			drawScale();
-			//drawSkewedScale();
+			if(!skewed)	drawScale();
+			else		drawSkewedScale();
 			}
 		
 		//Ontology label
@@ -299,7 +296,38 @@ public class VoronoiVisualization extends PApplet{
 				recursiveLabelComputing(c,0);	
 				computedLabels=true;
 				}
+		
 		for(Cell c:cells)	recursiveRegionDrawing(c, 0);
+		
+		//drawing searched regions
+		for(Cell s:searchedCells)
+			{
+			if(COLOR_MODE==COLOR_EXPRESSION)	stroke(0,200,0);
+			else								stroke(200,0,0);
+			strokeWeight(getWidth(s)+3);
+			
+			noFill();
+			if(s.region!=null)	
+				{
+				if(s.level<=this.levelThreshold)
+					{
+					boolean draw=true;
+					if(s.subcells!=null)
+						for(Cell s2:s.subcells)
+							{
+							//if(searchedCells.contains(s2) && levelThreshold>=s.level+1  && !(this.type==VoronoiVisualization.GO && levelThreshold==3))
+							if(searchedCells.contains(s2) && levelThreshold>=s2.level && s2.region!=null)
+								{
+								draw=false;
+								break;
+								}
+							}
+						
+					if(draw)	s.region.draw(this);
+					}
+				}
+			strokeWeight(0);
+			}
 		
 		//drawing hovered region
 		synchronized(hoveredCells)
@@ -326,6 +354,7 @@ public class VoronoiVisualization extends PApplet{
 						fill(0,0,0);
 						strokeWeight(0);
 						
+						textAlign(LEFT, TOP);
 						textFont(font,14);
 						//NOTE: numLeaves tells the number of genes in the whole of the subterms (with repetitions)
 						//		h.term.geneExs.size() will give the number without repetitions.
@@ -339,9 +368,10 @@ public class VoronoiVisualization extends PApplet{
 					}
 				//System.out.println("ids on term "+h.term.name+": "+h.term.geneIds.size());
 				}
-			if(hoveredCells.size()==0)
+			if(hoveredCells.size()==0 && selectedCell==null)
 				{
 				textFont(font,14);
+				textAlign(LEFT, TOP);
 				fill(0,0,0);
 				text("No term selected", 10, (int)(END_Y+font.getSize()*0.5));
 				noFill();
@@ -349,34 +379,24 @@ public class VoronoiVisualization extends PApplet{
 				}
 			}
 		
-		//drawing searched regions
-		for(Cell s:searchedCells)
+		if(selectedCell!=null)
 			{
-			if(COLOR_MODE==COLOR_EXPRESSION)	stroke(0,200,0);
-			else								stroke(200,0,0);
-			strokeWeight(getWidth(s)+3);
-			
 			noFill();
-			if(s.region!=null)	
-				{
-				if(s.level<=this.levelThreshold)
-					{
-					boolean draw=true;
-					if(s.subcells!=null)
-						for(Cell s2:s.subcells)
-							{
-							if(searchedCells.contains(s2) && levelThreshold>=s.level+1)
-								{
-								draw=false;
-								break;
-								}
-							}
-						
-					if(draw)	s.region.draw(this);
-					}
-				}
+			strokeWeight(getWidth(selectedCell)+3);
+			this.stroke(254,227,13);
+			selectedCell.region.draw(this);
+			fill(0,0,0);
 			strokeWeight(0);
+			
+			if(minHoveredCell==null)
+				{
+				textFont(font,14);
+				text(selectedCell.term.name+" ("+(int)(selectedCell.numLeaves)+")", 10, (int)(END_Y+font.getSize()*0.5));
+				fill(255,255,255);
+				drawProfile(selectedCell);
+				}
 			}
+				
 		
 		//drawing help messages
 		switch(hoveredBox)
@@ -403,19 +423,11 @@ public class VoronoiVisualization extends PApplet{
 					}
 				else						drawNote("Color scale for the mapping:\n  -Bright green/white for max to no deviation.\nUse 'c' key to change the scale\n", scaleBox, font);
 				break;
+			default:
+				break;
 			}
 		
-		//TODO: search dialog, etc. (better on a JPanel)
-		//if(drawSearch)
-			//text("search for: "+searchString);
-		
-		/*if(saving)	//Frame for pictures
-			{
-			strokeWeight(1);
-			stroke(0,0,0);
-			noFill();
-			rect(0,0,width,height);
-			}*/
+		//System.out.println("Time in post-region drawing: "+(System.currentTimeMillis()-t0)/1000.0);
 		}
 
 public void drawNote(String text, Rectangle2D.Float bounds, PFont font)
@@ -522,7 +534,8 @@ public void drawSkewedScale()
 			case COLOR_EXPRESSION:
 				if(i>mid)
 					{
-					h=(int)Math.round(255-((i-mid)/mid*2*255));
+					//h=(int)Math.round(255-((i-mid)/mid*2*255));
+					h=(int)Math.round(255-((i-mid)/Math.abs(mid)*255));
 					
 					stroke(255,h,h);
 					if(hc!=null && hc.color.get(selectedCol).getRed()==255 && Math.abs(hc.color.get(selectedCol).getBlue()-h)<=jumpAbove)
@@ -687,25 +700,21 @@ public void recursiveRegionDrawing(Cell cell, int level)
 	if(cell.region!=null && level<levelThreshold)
 		{
 		//1) Draw region
-		this.stroke(120, 120, 120);
+		this.stroke(120);
 		strokeWeight(getWidth(cell));
 		
-		fill(cell.color.get(selectedCol).getRed(),cell.color.get(selectedCol).getGreen(),cell.color.get(selectedCol).getBlue());
+		fill(cell.color.get(selectedCol).getRGB());
 		cell.region.draw(this); // draw this shape
-		noFill();
-		strokeWeight(0);
 		
 		if(SHOW_LABELS && cell.labelSize>0)
 			{
 			fill(0,0,0);
-			PFont font=loadFont("es/usal/voronto/font/AppleSymbols-"+cell.labelSize+".vlw");
-			
+			//textAlign(CENTER);
+			textAlign(LEFT, TOP);
 			textFont(font, cell.labelSize);
-			
-			text(cell.term.name, cell.labelX, cell.labelY);
-			
-			noFill();
-			textFont(font, 14);
+			textLeading(cell.labelSize+lineSpacing);
+			text(cell.label, cell.labelX, cell.labelY);
+			textAlign(LEFT, BASELINE);
 			}
 		
 		//2) Continue with recursion
@@ -730,7 +739,8 @@ public void recursiveLabelComputing(Cell cell, int level)
 	{
 	if(cell.region!=null)
 		{
-		computeLabelPosition(cell);
+		//computeLabelPosition(cell);
+		computeAndSplitLabelPosition(cell);
 			
 		//2) Continue with recursion
 		if(cell.subcells!=null && cell.subcells.length>0)	
@@ -739,7 +749,92 @@ public void recursiveLabelComputing(Cell cell, int level)
 			}
 	}
 
-public void computeLabelPosition(Cell cell)
+public int numLines(String cad)
+	{
+	int numLines=1;
+	String temp=cad;
+	while(temp.indexOf("\n")>0)	{temp=temp.substring(temp.indexOf("\n")+1); numLines++;}	
+	return numLines;
+	}
+
+public void computeAndSplitLabelPosition(Cell cell)
+	{
+	Rectangle r=cell.region.getPolygon().getBounds();
+	int size=textSize;
+	textFont(font, size);
+	boolean fit=false;
+	double diff=10000000;
+	int bestSize=size;
+	int bestX=-1, bestY=-1;
+	if(cell.term.name.startsWith("Citrate cycle (TCA cycle)"))
+		System.out.println("Checking");
+	
+	while(!fit)
+		{
+		float tw=textWidth(cell.label);
+		int y=r.y+15;
+		
+		int ss=(int)(textAscent()+textDescent()+lineSpacing)*numLines(cell.label);
+		
+		while(y+ss<r.y+r.height)
+			{
+			int x=r.x+5;
+			while(x+tw<r.x+r.width)
+				{
+				//Rectangle rt=new Rectangle(x-5,y-5,(int)Math.ceil(tw)+10,ss+10);
+				Rectangle rt=new Rectangle(x-2,y-2,(int)Math.ceil(tw)+4,ss+4);
+				double newDist=Point2D.distance((double)cell.centroid[0], (double)cell.centroid[1], (double)x+tw*0.5, (double)y+ss*0.5);
+				if(cell.region.getPolygon().contains(rt) &&	//here may fit
+					diff>newDist)
+					{
+					diff=newDist;
+					bestX=x; bestY=y; bestSize=size;
+					fit=true;
+					}
+				else
+					{
+					x+=1;
+					}
+				}
+			y+=1;
+			}
+		size--;
+		
+		textFont(font, size);
+		if(fit==true)
+			{
+			cell.labelX=bestX;
+			cell.labelY=bestY;
+			cell.labelSize=bestSize;
+			return;
+			}
+		else if(size<=8 && cell.label.indexOf(" ")>0 )//&& cell.term.name.indexOf(" ")>0)
+			{
+			//instead of returning, try splitting the term by the mid point (if spaces are present)
+			String temp=cell.label;
+			int begin=0;
+			ArrayList<Integer> spaces=new ArrayList<Integer>();
+			while(temp.indexOf(" ")!=-1)	{spaces.add(begin+temp.indexOf(" ")); begin+=temp.indexOf(" ")+1; temp=temp.substring(temp.indexOf(" ")+1); }
+			int middleSpace=-1;
+			double minDist=99999999;
+			for(int i=0;i<spaces.size();i++)
+				{
+				int space=spaces.get(i);
+				double dist=Math.abs(space-cell.label.length()*0.5);
+				if(dist<minDist)
+					{minDist=dist; middleSpace=space;}
+				}
+			System.out.println("label "+cell.label);
+			cell.label=cell.label.substring(0, middleSpace)+"\n"+cell.label.substring(middleSpace+1);
+			System.out.println("becomes "+cell.label);
+			computeAndSplitLabelPosition(cell);
+			return;
+			}
+		else if(size<=8 && cell.label.indexOf(" ")==-1)
+			return;
+		}
+	}
+/*public void computeLabelPosition(Cell cell)
 	{
 	Rectangle r=cell.region.getPolygon().getBounds();
 	int size=textSize;
@@ -788,7 +883,7 @@ public void computeLabelPosition(Cell cell)
 			return;
 			}
 		}
-	}
+	}*/
 /**
  * Displaces every region in the tessellation by (x,y)
  * @param cell
@@ -817,7 +912,7 @@ public void mouseReleased() {
 	
 	if(mouseEvent.getClickCount()==1 && hoveredCells.size()>0)
 		{
-		if(altDown)
+		if(altDown)	//draw heatmap
 			{
 			altDown=false;
 			
@@ -847,6 +942,14 @@ public void mouseReleased() {
 				gh.requestFocusInWindow();
 				}
 			return;
+			}
+		else	//set selection
+			{
+			if(selectedCell!=minHoveredCell)
+				selectedCell=minHoveredCell;
+			else
+				selectedCell=null;
+			redraw();
 			}
 		}
 		if(mouseEvent.getClickCount()==2 && hoveredCells.size()>0)						//show term info on its related webpage
@@ -1141,6 +1244,8 @@ public void keyPressed()
 
 public void keyReleased()
 	{
+	Cursor hourglassCursor, normalCursor;
+	
 	//System.out.println("key: "+keyCode);
 	//TODO: check if keycodes for arrows are the same on any platform (should be)
 	switch(keyCode)
@@ -1161,14 +1266,15 @@ public void keyReleased()
 			setOntologyName();
 			break;
 		case 40://down
-			if(type==VoronoiVisualization.SLIMBP || type==VoronoiVisualization.SLIMCC)	
-				levelThreshold=Math.min(v.maxLevel, levelThreshold+1);
+			levelThreshold=Math.min(v.maxLevel+1, levelThreshold+1);
+			//if(type==VoronoiVisualization.SLIMBP || type==VoronoiVisualization.SLIMCC)	
+			//	levelThreshold=Math.min(v.maxLevel, levelThreshold+1);
 			/*else if(type==VoronoiVisualization.KEGG)		
 				levelThreshold=Math.min(v.maxLevel+1, levelThreshold+1);
 			else if(type==VoronoiVisualization.GO)			levelThreshold=Math.min(v.maxLevel+1,levelThreshold+1);	
-			else if(type==VoronoiVisualization.REACTOME)	levelThreshold=Math.min(v.maxLevel+1,levelThreshold+1);*/
+			else if(type==VoronoiVisualization.REACTOME)	levelThreshold=Math.min(v.maxLevel+1,levelThreshold+1);
 			else											
-				levelThreshold=Math.min(v.maxLevel+1,levelThreshold+1);
+				levelThreshold=Math.min(v.maxLevel+1,levelThreshold+1);*/
 			
 			setOntologyName();
 			break;
@@ -1190,18 +1296,21 @@ public void keyReleased()
 				return;
 				}
 			
-			Cursor hourglassCursor = new Cursor(Cursor.WAIT_CURSOR);
+			hourglassCursor = new Cursor(Cursor.WAIT_CURSOR);
 			setCursor(hourglassCursor);
 			
 			try{tessellate(cell.term);}catch(Exception e){e.printStackTrace();}
 			
-			Cursor normalCursor = new Cursor(Cursor.DEFAULT_CURSOR);
+			normalCursor = new Cursor(Cursor.DEFAULT_CURSOR);
 			setCursor(normalCursor);
 			
 			break;
 			
 		case 8://supr
 			//return back into hierarchy
+			hourglassCursor = new Cursor(Cursor.WAIT_CURSOR);
+			setCursor(hourglassCursor);
+			
 			if(root.id.equals("root") && root.name.equals("root"))	return;
 			searchedCells.clear();
 			OntologyTerm parent=searchParent(root, map, new OntologyTerm("root", "root"));
@@ -1211,9 +1320,12 @@ public void keyReleased()
 			root=parent;
 		 	cells=v.getCells();
 			hoveredCells.clear();
+			selectedCell=null;
 			computedLabels=false;
 			setOntologyName();
 			
+			normalCursor = new Cursor(Cursor.DEFAULT_CURSOR);
+			setCursor(normalCursor);
 			break;
 		case 17:	//ctrl
 			ctrlDown=false;
@@ -1223,19 +1335,23 @@ public void keyReleased()
 			break;
 			
 		default:
-			System.out.println(keyCode);
+			//System.out.println(keyCode);
 			break;
 		}
 	switch(key)
 		{
 		case KeyEvent.VK_ESCAPE:
 			break;
-		case 's'://change scale
+		case 's':
+			skewed=!skewed;
+			break;
+		/*case 's'://change scale
 			//SCALE_MODE=(SCALE_MODE+1)%3;
 			SCALE_MODE=(SCALE_MODE+1)%2;	//no ontology mode
 			System.out.println("SCALE_MODE: "+SCALE_MODE);
 			expression2color(this.expData);
 			break;
+			*/
 		/*case 'c'://change color
 			//if(COLOR_MODE==COLOR_EXPRESSION)	COLOR_MODE=COLOR_DEVIATION;
 			//else								COLOR_MODE=COLOR_EXPRESSION;
@@ -1375,7 +1491,16 @@ public void tessellate(OntologyTerm term) throws Exception
 	
 	setOntologyName();
 	hoveredCells.clear();
+	selectedCell=null;
 	return;
+	}
+
+public void mouseExited(MouseEvent e)
+	{
+	minHoveredCell=null;
+	minHoveredLevel=-1;
+	hoveredCells.clear();
+	redraw();
 	}
 
 public void mouseMoved() {
@@ -1384,6 +1509,7 @@ public void mouseMoved() {
 	Cell[] cells = v.getCells();
 	
 	//1) Check hovered cells
+	//long t0=System.currentTimeMillis();
 	synchronized(hoveredCells)
 		{
 		minHoveredCell=null;
@@ -1403,18 +1529,19 @@ public void mouseMoved() {
 		{
 		if(organismBox!=null && organismBox.contains(mouseX, mouseY))
 			hoveredBox=ORGANISM;
-		if(conditionBox!=null && conditionBox.contains(mouseX, mouseY))
+		else if(conditionBox!=null && conditionBox.contains(mouseX, mouseY))
 			hoveredBox=CONDITION;
-		if(ontologyBox!=null && ontologyBox.contains(mouseX, mouseY))
+		else if(ontologyBox!=null && ontologyBox.contains(mouseX, mouseY))
 			hoveredBox=ONTOLOGY;
-		if(cellBox!=null && cellBox.contains(mouseX, mouseY))
+		else if(cellBox!=null && cellBox.contains(mouseX, mouseY))
 			hoveredBox=CELL;
-		if(scaleBox!=null && scaleBox.contains(mouseX, mouseY))
+		else if(scaleBox!=null && scaleBox.contains(mouseX, mouseY))
 			hoveredBox=SCALE;
 		}
+	//System.out.println("Time in search: "+(System.currentTimeMillis()-t0)/1000.0);
 	
     // update the screen (run draw once)
-    redraw();
+	redraw();
 	}
 
 
@@ -1433,8 +1560,9 @@ public ArrayList<Cell> recursiveSearchHovered(Cell cell)
 		if(cell.region.getPolygon().contains(mouseX, mouseY))
 			{
 			if(minHoveredCell==null)	minHoveredCell=cell;
-			else if(minHoveredCell.level<cell.level && levelThreshold>=cell.level)	minHoveredCell=cell;
+			if(minHoveredCell.level<cell.level && levelThreshold>=cell.level)	minHoveredCell=cell;
 			if(cell.level>minHoveredLevel)	minHoveredLevel=cell.level;
+			
 			ret.add(cell);
 			
 			//2) Continue with recursion (only if the parent is hovered)
@@ -1542,24 +1670,8 @@ public void recursiveExpressionMapping(Cell cell, ExpressionData md)
 
 	cell.computeExpression(md, type);
 	if(cell.subcells!=null && cell.subcells.length>0)	//for internal nodes
-		{
 		for(Cell cc:cell.subcells)
-			{
-			//System.out.println("recursive mapping for "+cc.term.name);//it gets into an infinite loop in biological regulation!!!
 			recursiveExpressionMapping(cc, md);
-			}
-		//cell.computeExpressionFromChildren(md);
-		}
-	/*else			//for leaf nodes
-		{
-		//1) Compute expression
-		//long t=System.currentTimeMillis();
-		cell.computeExpression(md,type);
-		//System.out.println("Compute expression for "+cell.term.name+" takes "+(System.currentTimeMillis()-t)/1000.0);
-		//2) Check max deviation //TODO: working in KO, not in GO. Discuss if it benefits somehow
-		//for(int i=0;i<md.getNumConditions();i++)
-			//if(maxSd[i]<cell.expressionDeviation.get(i))	maxSd[i]=cell.expressionDeviation.get(i);
-		}*/
 		
 	return;
 	}

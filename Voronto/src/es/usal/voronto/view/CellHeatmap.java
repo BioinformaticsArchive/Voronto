@@ -217,7 +217,7 @@ public class CellHeatmap extends PApplet
 					}
 				else
 					fill(154);
-				text(gene.substring(gene.indexOf(":")+1),marginRows+xDisplacement, (float)(margin+marginCols+(i+0.5)*size));
+				text(gene.substring(gene.indexOf(":")+1).toUpperCase(),marginRows+xDisplacement, (float)(margin+marginCols+(i+0.5)*size));
 				
 				ArrayList<Float> exs=cell.term.geneExs.get(gene);
 				for(int j=0;j<numCols;j++)
