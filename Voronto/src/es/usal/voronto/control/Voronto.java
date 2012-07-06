@@ -301,6 +301,8 @@ public void launch(String expressionFile, String ontologyFile, int ontology)
 public void goBack()
 	{
 	remove(gv);
+	gv=null;
+	System.gc();
 	
 	intro.reset();
 	

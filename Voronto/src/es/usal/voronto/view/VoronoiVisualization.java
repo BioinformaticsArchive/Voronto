@@ -302,7 +302,11 @@ public class VoronoiVisualization extends PApplet{
 		//drawing searched regions
 		for(Cell s:searchedCells)
 			{
-			if(COLOR_MODE==COLOR_EXPRESSION)	stroke(0,200,0);
+			if(COLOR_MODE==COLOR_EXPRESSION)
+				{
+				if(s.searchedColor!=null)	stroke(s.searchedColor.getRed(), s.searchedColor.getGreen(), s.searchedColor.getBlue());
+				else						stroke(0,200,0);
+				}
 			else								stroke(200,0,0);
 			strokeWeight(getWidth(s)+3);
 			
@@ -391,6 +395,7 @@ public class VoronoiVisualization extends PApplet{
 			if(minHoveredCell==null)
 				{
 				textFont(font,14);
+				textAlign(LEFT, TOP);
 				text(selectedCell.term.name+" ("+(int)(selectedCell.numLeaves)+")", 10, (int)(END_Y+font.getSize()*0.5));
 				fill(255,255,255);
 				drawProfile(selectedCell);
@@ -766,8 +771,6 @@ public void computeAndSplitLabelPosition(Cell cell)
 	double diff=10000000;
 	int bestSize=size;
 	int bestX=-1, bestY=-1;
-	if(cell.term.name.startsWith("Citrate cycle (TCA cycle)"))
-		System.out.println("Checking");
 	
 	while(!fit)
 		{
@@ -824,9 +827,7 @@ public void computeAndSplitLabelPosition(Cell cell)
 				if(dist<minDist)
 					{minDist=dist; middleSpace=space;}
 				}
-			System.out.println("label "+cell.label);
 			cell.label=cell.label.substring(0, middleSpace)+"\n"+cell.label.substring(middleSpace+1);
-			System.out.println("becomes "+cell.label);
 			computeAndSplitLabelPosition(cell);
 			return;
 			}
@@ -945,15 +946,19 @@ public void mouseReleased() {
 			}
 		else	//set selection
 			{
-			if(selectedCell!=minHoveredCell)
-				selectedCell=minHoveredCell;
-			else
-				selectedCell=null;
-			redraw();
+			if(this.isFocusOwner())
+				{
+				if(selectedCell!=minHoveredCell)
+					selectedCell=minHoveredCell;
+				else
+					selectedCell=null;
+				redraw();
+				}
 			}
 		}
 		if(mouseEvent.getClickCount()==2 && hoveredCells.size()>0)						//show term info on its related webpage
 			{
+			selectedCell=null;
 			if(type==KEGG)
 				{
 				Cursor hourglassCursor = new Cursor(Cursor.WAIT_CURSOR);
@@ -1279,7 +1284,7 @@ public void keyReleased()
 			setOntologyName();
 			break;
 		case 10://enter
-			
+			//System.gc();
 			searchedCells.clear();
 			
 			//dig deep into hierarchy
@@ -1307,13 +1312,16 @@ public void keyReleased()
 			break;
 			
 		case 8://supr
+			//System.gc();
+			
 			//return back into hierarchy
 			hourglassCursor = new Cursor(Cursor.WAIT_CURSOR);
 			setCursor(hourglassCursor);
 			
 			if(root.id.equals("root") && root.name.equals("root"))	return;
 			searchedCells.clear();
-			OntologyTerm parent=searchParent(root, map, new OntologyTerm("root", "root"));
+			OntologyTerm parent=new OntologyTerm("root","root");
+			if(!altDown)	parent=searchParent(root, map, new OntologyTerm("root", "root"));
 			v=tessellations.get(parent);
 			if(v==null)	try{tessellate(parent);}catch(Exception e){e.printStackTrace();}
 			
@@ -1456,6 +1464,11 @@ public void exit()
  */
 public void tessellate(OntologyTerm term) throws Exception
 	{
+	/*System.out.println(Runtime.getRuntime().freeMemory()+" free memory");
+	System.out.println(Runtime.getRuntime().maxMemory()+" max memory");
+	System.out.println(Runtime.getRuntime().totalMemory()+" total memory");
+	System.gc();*/
+	
 	boolean translate=false;
 	if(tessellations.get(term)==null)	//search for the tessellation for this term as root
 		{
@@ -1887,19 +1900,27 @@ public ArrayList<Cell> recursiveDESearch(Cell cell, int[] g1, int[] g2, int type
 			if(sublist.size()>0)	add=true;
 			}
 		if((add && level<=this.levelThreshold))
+			{
+			cell.searchedColor=new Color(0,100,0);
 			retList.add(cell);
+			}
 		}
-	
 	double e1=0;
 	for(int i:g1)			e1+=cell.expressionLevel.get(i);
 	double e2=0;
 	for(int i:g2)			e2+=cell.expressionLevel.get(i);
 	e1/=g1.length; e2/=g2.length;
 	
-	if(type==0 && e1>e2+threshold)	//TODO: must add some threshold
+	if(type==0 && e1>e2+threshold)	
+		{
+		cell.searchedColor=new Color(0,200,0);
 		retList.add(cell);
+		}
 	else if(type==1 && e2>e1+threshold)
+		{
+		cell.searchedColor=new Color(0,200,0);
 		retList.add(cell);
+		}
 	
 	return retList;
 	}
@@ -1909,14 +1930,34 @@ public ArrayList<Cell> recursiveSearch(Cell cell, String searchText, int level)
 	ArrayList<Cell> retList=new ArrayList<Cell>();
 	if(cell.subcells==null || cell.subcells.length==0)
 		{
+		cell.searchedColor=null;
 		if(cell.term.name.toLowerCase().contains(searchText.toLowerCase()) || cell.term.id.toLowerCase().contains(searchText.toLowerCase()))
+			{
+			cell.searchedColor=new Color(0,200,0);
 			retList.add(cell);
+			}
 		else
 			for(String id:cell.term.geneIds)
-				if(id.toLowerCase().contains(searchText.toLowerCase()))	{retList.add(cell); break;}
+				if(id.toLowerCase().contains(searchText.toLowerCase()))	
+					{
+					cell.searchedColor=new Color(0,200,0);
+					retList.add(cell); 
+					break;
+					}
  		}
 	else
 		{
+		boolean contains=false;
+		if(cell.term.name.toLowerCase().contains(searchText.toLowerCase()) || cell.term.id.toLowerCase().contains(searchText.toLowerCase()))
+			contains=true;
+		else
+			for(String id:cell.term.geneIds)
+				if(id.toLowerCase().contains(searchText.toLowerCase()))	
+					{
+					contains=true;
+					break;
+					}
+		
 		boolean add=false;
 		for(Cell c:cell.subcells)
 			{
@@ -1924,8 +1965,15 @@ public ArrayList<Cell> recursiveSearch(Cell cell, String searchText, int level)
 			retList.addAll(sublist);
 			if(sublist.size()>0)	add=true;
 			}
-		if((add && level<=this.levelThreshold) || cell.term.name.toLowerCase().contains(searchText.toLowerCase()) || cell.term.id.toLowerCase().contains(searchText.toLowerCase()))
+	
+		if((add && level<=this.levelThreshold) || contains)
+			{
+			if(contains)
+				cell.searchedColor=new Color(0,200,0);
+			else
+				cell.searchedColor=new Color(0,100,0);
 			retList.add(cell);
+			}
 		}
 	return retList;
 	}

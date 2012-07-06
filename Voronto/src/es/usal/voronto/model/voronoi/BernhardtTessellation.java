@@ -77,7 +77,6 @@ public class BernhardtTessellation {
 		//1) Recursively generate the cell hierarchy
 		long time=System.currentTimeMillis();
 		OntologyTerm[] terms=m.keySet().toArray(new OntologyTerm[0]);//TODO: this might lead to unnefficient computing.
-		//cells=new Cell[terms.length];
 		ArrayList<Cell> cellsTemp=new ArrayList<Cell>();
 		numLeaves=0;
 	    for(int i=0;i<terms.length;i++)	//Covering leaf children (only for major nodes)

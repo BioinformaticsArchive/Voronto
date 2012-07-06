@@ -27,6 +27,7 @@ public class Cell implements Cloneable {
 	public Cell[] subcells;//subcells in the hierarchy
 	public int level=0;//level of the cell in the hierarchy
 	public int id=-1;//TODO: by now, identifying by name
+	public Color searchedColor=null;
 	
 	public ArrayList<Float> expressionLevel=new ArrayList<Float>(); //based on the expression of every gene in the term. If no gene is present on our expression data, it would be NaN and be drawn in grey
 	public ArrayList<Float> expressionDeviation=new ArrayList<Float>();
