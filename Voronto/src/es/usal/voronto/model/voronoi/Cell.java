@@ -79,6 +79,20 @@ public class Cell implements Cloneable {
 	weight=numLeaves;
 	}	
 	
+	public Cell(OntologyTerm t, int l, ArrayList<Cell> sc)
+	{
+	term=t;
+	level=l;
+	position=new float[2];
+	centroid=new float[2];
+	label=String.copyValueOf(term.name.toCharArray());
+	subcells=sc.toArray(new Cell[0]);
+	int w=0;
+	for(Cell cs:subcells)	w+=cs.numLeaves;
+	weight=numLeaves=w;//Todo: change by total number of leaves!
+	}
+
+	
 	/**
 	 * Copy constructor
 	 * @param c
@@ -191,7 +205,14 @@ public class Cell implements Cloneable {
 	public void computeExpression(ExpressionData md, int ontology)
 		{
 		color=new ArrayList<Color>();
-		for(int i=0;i<md.getNumConditions();i++)	color.add(new Color(240,240,240));
+		if(md==null)
+			{
+			color.add(new Color(240,240,240));
+			return;
+			}
+		for(int i=0;i<md.getNumConditions();i++)	
+			color.add(new Color(240,240,240));
+
 		//long t=System.currentTimeMillis();
 		if(ontology==VoronoiVisualization.KEGG)
 			computeKOExpression(md);

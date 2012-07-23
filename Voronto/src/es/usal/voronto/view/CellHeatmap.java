@@ -1,5 +1,6 @@
 package es.usal.voronto.view;
 
+import java.awt.Color;
 import java.awt.Toolkit;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -87,8 +88,8 @@ public class CellHeatmap extends PApplet
 				{
 				System.err.println("Too many genes, choose a smaller term");
 				JOptionPane.showMessageDialog(null, "This term has too many genes for the heatmap visualization. Please choose a smaller term.", "Too many genes", JOptionPane.INFORMATION_MESSAGE);
-				this.setVisible(false);
-				this.stop();
+				setVisible(false);
+				stop();
 				return;
 				}
 			}
@@ -158,6 +159,7 @@ public class CellHeatmap extends PApplet
 			
 		}
 	
+	
 	public void draw()
 		{
 		if(order==null)	return;
@@ -222,84 +224,8 @@ public class CellHeatmap extends PApplet
 				ArrayList<Float> exs=cell.term.geneExs.get(gene);
 				for(int j=0;j<numCols;j++)
 					{
-					//Set color scale
-					double minExp=0, maxExp=0, avgExp=0;
-					switch(vv.SCALE_MODE)
-						{
-						case VoronoiVisualization.SCALE_MATRIX:
-							minExp=vv.expData.min;
-							maxExp=vv.expData.max;
-							avgExp=vv.expData.average;
-							break;
-						case VoronoiVisualization.SCALE_CONDITION:
-							minExp=vv.expData.minCols[j];
-							maxExp=vv.expData.maxCols[j];
-							avgExp=vv.expData.averageCols[j];
-							break;
-						case VoronoiVisualization.SCALE_ONTOLOGY:
-							minExp=1000000000;
-							maxExp=-1000000000;
-							avgExp=0;
-							break;
-						}
-					
-					//draw rectangle
-					int h=-1;
-					if(vv.whiteValue==VoronoiVisualization.MEAN)	//raw coloring
-						{
-						switch(vv.COLOR_MODE)
-							{
-							case VoronoiVisualization.COLOR_EXPRESSION:
-								if(exs.get(j)>avgExp)
-									{
-									h=(int)Math.round(255-((exs.get(j)-avgExp)/(maxExp-avgExp)*255));
-									fill(255,h,h);
-									}
-								else
-									{//h=(int)Math.round(255-(Math.abs(cell.expressionLevel.get(column)-avgExp)/Math.abs(minExp-avgExp))*255);
-									h=(int)Math.round(255-(Math.abs(exs.get(j)-avgExp)/Math.abs(minExp-avgExp))*255);
-									fill(h,h,255);
-									}
-								break;
-							case VoronoiVisualization.COLOR_DEVIATION:
-								h=(int)Math.round(255-(Math.abs(exs.get(j)-avgExp)/Math.max(Math.abs(avgExp-minExp), Math.abs(avgExp-maxExp)))*255);
-								fill(h,255,h);
-								break;
-							case VoronoiVisualization.COLOR_INTERNAL_DEVIATION://TODO: testing
-								if(cell.expressionDeviation.size()>0)	
-									h=(int)(255-(exs.get(j)/vv.maxSd[j])*255);
-								else	h=255;
-								fill(h,255,h);
-								break;
-							}
-						}
-					else	//quantile coloring --> note: color scaling 
-						{
-						switch(vv.COLOR_MODE)
-							{
-							case VoronoiVisualization.COLOR_EXPRESSION:
-								int q=vv.expData.getQuantile(exs.get(j));
-								if(q>=50)
-									{
-									h=(int)Math.round(255-((q-50.0)/50)*255);
-									fill(255,h,h);
-									}
-								else
-									{
-									h=(int)Math.round(255-((50.0-q)/50)*255);
-									fill(h,h,255);
-									}
-								break;
-							case VoronoiVisualization.COLOR_DEVIATION:
-								System.err.println("Option not supported for quantiles");
-								//h=(int)Math.round(255-(Math.abs(cell.expressionLevel.get(column)-getWhiteValue())/Math.max(Math.abs(getWhiteValue()-minExp), Math.abs(getWhiteValue()-maxExp)))*255);
-								//cell.color=new Color(h,255,h);
-								break;
-							case VoronoiVisualization.COLOR_INTERNAL_DEVIATION://TODO: testing
-								System.err.println("Option not supported for quantiles");
-							}
-						}
-					
+					Color co=vv.getColor(exs, j);
+					fill(co.getRed(), co.getGreen(), co.getBlue());
 					
 					float xcell=(float)(margin+marginRows+xDisplacement+j*size);
 					float ycell=(float)(margin+marginCols+i*size);
@@ -343,8 +269,6 @@ public class CellHeatmap extends PApplet
 						strokeWeight(1);
 						return;
 						}
-					
-						
 					if((mouseX>xcell && mouseX<xcell+size) && (mouseY>ycell && mouseY<ycell+size))
 						{	
 						strokeWeight(3);

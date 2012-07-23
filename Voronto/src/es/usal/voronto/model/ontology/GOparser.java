@@ -54,212 +54,61 @@ public class GOparser {
 	 * @return
 	 */
 	public static TreeMap<OntologyTerm, TreeMap> parse(String path, String ontology, boolean redo)
-	{
-	TreeMap<OntologyTerm, TreeMap> map=new TreeMap<OntologyTerm, TreeMap>();
-	//Map<OntologyTerm, String> parents=Collections.synchronizedMap(new TreeMap<OntologyTerm, String>());
-	Map<OntologyTerm, List<String>> parents=Collections.synchronizedMap(new TreeMap<OntologyTerm, List<String>>());//NOTE: considering more than 1 parent per node
-	Map<String, List<String>> children=Collections.synchronizedMap(new TreeMap<String, List<String>>());
-	
-	
-	String serName=null;
-	if(path.contains("slim"))	serName="goSLIM";
-	else						serName="go";
-	
-	String goTermName="terms";
-	if(path.contains("slim"))	goTermName="goSLIM"+ontology+".txt";
-	else						goTermName="go"+ontology+".txt";
-	ArrayList<String> goTerms=new ArrayList<String>();
-	
-	//1) ###################################### HIERARCHY ##################################
-	//A) Try to get GO hierarchy map from serialized data, if it exists
-	if(!redo)
-		try
-		   {
-			System.out.println("Reading GO serialized map");
-			long time=System.currentTimeMillis();
-			InputStream is=Thread.currentThread().getContextClassLoader().getResourceAsStream("es/usal/voronto/data/go/"+serName+""+ontology+".ser");
-			ObjectInputStream oin = new ObjectInputStream(is);
-			map = (TreeMap<OntologyTerm, TreeMap>)oin.readObject();
-		    oin.close();
-		    System.out.println("GO hierarchy read in "+(System.currentTimeMillis()-time)/1000.0);
-		    }catch(Exception e){e.printStackTrace(); redo=true;}
-	
-	if(map.size()==0)
 		{
-		//B) Else, parse OBO file to generate hierarchy
-		BufferedReader in;
-		try {
-			in = new BufferedReader(new InputStreamReader(Thread.currentThread().getContextClassLoader().getResourceAsStream(path)));
-			
-			String s=null;
-			String name=null;
-			String id=null;
-			String namespace=null;
-			String def=null;
-			
-			//B1) map ontology terms to their parents
-			long time=System.currentTimeMillis();
-			System.out.println("Building GO ontology hierarchy: "+path+"\t"+ontology);
-			while ((s = in.readLine()) != null)
-				{
-				if(s.equals("[Term]"))	
-					{
-					//B11) Take first three fixed fields (id, name and namespace)
-					id=in.readLine();
-					id=id.substring(id.indexOf(":")+1).trim();
-					name=in.readLine();
-					name=name.substring(name.indexOf(":")+1).trim();
-					namespace=in.readLine();
-					namespace=namespace.substring(namespace.indexOf(":")+1).trim();
-					OntologyTerm ot=new OntologyTerm(name, id);
-					if(id.contains("0008652"))
-						System.out.println("cellular aa");
-					if(namespace.equals(ontology))	//only for the ontology we are populating
-						{
-						//B12) Then go to is_a relations
-						String cad=null;
-						boolean obsolete=false;
-						
-						//considering more than one parent
-						List<String> p=new ArrayList<String>();
-						while((cad=in.readLine()).length()>0)	
-							{
-							if(cad.startsWith("is_obsolete: true"))	//this is a non valid node
-								{	obsolete=true; break;	}
-							if(cad.startsWith("is_a:"))	
-								p.add(cad.substring(cad.indexOf(":")+1, cad.indexOf("!")).trim());//this is the root, no is_a: relationship
-							}
-						
-	
-						//TODO: by now, we only consider one parent, as in GO slim
-						if(!obsolete)
-							{
-							goTerms.add(id);
-							parents.put(ot, p);
-							
-							//with children list here
-							for(String pp:p)
-								{
-								List<String> c=children.get(pp);
-								if(c!=null)	c.add(ot.id);
-								else	{c=new ArrayList<String>(); c.add(ot.id); children.put(pp, c);}
-								}
-							}
-						//considering just one parent (first one)
-						/*while(!(cad=in.readLine()).startsWith("is_a:"))	
-							{
-							if(cad.startsWith("is_obsolete: true"))	//this is a non valid node
-								{	obsolete=true; break;	}
-							if(cad.length()==0)	break;//this is the root, no is_a: relationship
-							}
-	
-						//TODO: by now, we only consider one parent, as in GO slim
-						if(!obsolete)
-							{
-							String parentid=null;
-							goTerms.add(id);
-							if(cad.length()>0)
-								parentid=cad.substring(cad.indexOf(":")+1, cad.indexOf("!")).trim();
-							parents.put(ot, parentid);
-							}*/
-						}
-					
-	
-					}//if [Term]
-				}
-			
-			System.out.println("Ontology terms recovered in "+(System.currentTimeMillis()-time)/1000.0+"s, "+parents.size()+" elements");
-			//B2) get the one without a parent (root) and build from there on
-			Iterator<OntologyTerm> it=parents.keySet().iterator();
-			OntologyTerm root=null;
-			while(it.hasNext())
-				{
-				OntologyTerm ot=it.next();
-				if(ot.name.equals(ontology))
-				//if(parents.get(ot)==null)//da root
-					{
-					root=ot;
-					map.put(ot, new TreeMap<OntologyTerm, Map>());
-					//break;
-					}
-				if(parents.get(ot)==null)
-					System.out.println(ot.id+" "+ot.name+" is a root");
-				}
-			//only one should be in the map by now
-			System.out.println("Parent is "+root.id+", "+root.name);
-			OntologyTerm[] ots=parents.keySet().toArray(new OntologyTerm[0]);
-			ArrayList<OntologyTerm> lot=new ArrayList<OntologyTerm>(Arrays.asList(ots));
-			HashMap<String, OntologyTerm> mlot=new HashMap<String, OntologyTerm>();
-			for(OntologyTerm ot:ots)	mlot.put(ot.id, ot);
-			
-//			mlot.remove(root);
-			//System.out.println("root is at "+lot.indexOf(root));
-			//lot.remove(lot.indexOf(root));
-			//addChildren(root, parents, map.get(root), lot,0);
-			addChildren(root, children, map.get(root), mlot,0);
-		//	public static synchronized void addChildren(OntologyTerm root, Map<String, List<String>> children, Map<OntologyTerm, Map> m, Map<String, OntologyTerm> lot)
-				
-			
-				
+		TreeMap<OntologyTerm, TreeMap> map=new TreeMap<OntologyTerm, TreeMap>();
+		String serName=null;
+		if(path.contains("slim"))	serName="goSLIM";
+		else						serName="go";
+		
+		String goTermName="terms";
+		if(path.contains("slim"))	goTermName="goSLIM"+ontology+".txt";
+		else						goTermName="go"+ontology+".txt";
+		
+		if(!redo)
+			try
+			   	{
+				System.out.println("Reading GO serialized map");
+				long time=System.currentTimeMillis();
+				InputStream is=Thread.currentThread().getContextClassLoader().getResourceAsStream("es/usal/voronto/data/go/"+serName+""+ontology+".ser");
+				ObjectInputStream oin = new ObjectInputStream(is);
+				map = (TreeMap<OntologyTerm, TreeMap>)oin.readObject();
+			    oin.close();
+			    System.out.println("GO hierarchy read in "+(System.currentTimeMillis()-time)/1000.0);
+			    }catch(Exception e){e.printStackTrace(); redo=true;}
+		
+		if(map.size()==0)
+			map=OBOparser.parse(path, ontology, ontology);//root names equals namespace name
+		
 		if(redo)
 			{
-			//B3) Serialize the mapping for optimization (still it takes time to read after, better divide by species
-			FileOutputStream fos = new FileOutputStream(serName+ontology+".ser");
-			ObjectOutputStream out = new ObjectOutputStream(fos);
-			out.writeObject(map);
-			out.close();
-			
-			//B4) Write Go terms to a file as a list:
-			BufferedWriter fichero=new BufferedWriter(new FileWriter(goTermName));
-			for(String go:goTerms)	fichero.write(go+"\n");
-			fichero.close();
+			try{
+				//B3) Serialize the mapping for optimization (still it takes time to read after, better divide by species
+				FileOutputStream fos = new FileOutputStream(serName+ontology+".ser");
+				ObjectOutputStream out = new ObjectOutputStream(fos);
+				out.writeObject(map);
+				out.close();
+				
+				//B4) Write Go terms to a file as a list:
+				/*BufferedWriter fichero=new BufferedWriter(new FileWriter(goTermName));
+				for(String go:goTerms)	fichero.write(go+"\n");
+				fichero.close();*/
+				}catch(Exception e){e.printStackTrace();}
 			}
-
-				} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (Exception e){e.printStackTrace();}
-	}
-	
-	TreeMap<OntologyTerm, TreeMap> onto=new TreeMap<OntologyTerm, TreeMap>();
-	onto.put(new OntologyTerm("GO slim ontology", ""), map);
-	
-	return onto;
-	}
-	
-	/**
-	 * Recursively builds the hierarchy, given the parents.
-	 * It cannot be done from the beginning because of the GO file structure.
-	 * @param root
-	 * @param parents
-	 * @param m
-	 * @param lot
-	 */
-	public static synchronized void addChildren(OntologyTerm root, Map<String, List<String>> children, Map<OntologyTerm, Map> m, Map<String, OntologyTerm> lot, int level)
-		{
-		//System.out.println();
-		//for(int i=0;i<level;i++)	System.out.print("\t");
-		//System.out.print("Adding children to "+root.name);
-		//if(root.id.equals("GO:0008152"))
-		//	System.out.println("cellular proc");
-		List<String> c=children.get(root.id);
-		if(c!=null)
-			{
-			for(String cc:c)
-				{
-				OntologyTerm ochild=lot.get(cc);
-				m.put(ochild, new TreeMap<OntologyTerm, Map>());
-				addChildren(ochild, children, m.get(ochild), lot, level+1);
-				}
-			}
-		return;
+		
+		TreeMap<OntologyTerm, TreeMap> onto=new TreeMap<OntologyTerm, TreeMap>();
+		onto.put(new OntologyTerm("GO slim ontology", ""), map);
+		
+		return onto;
 		}
-
+	
 	/**
-	 * Takes a GAF file and generatesmi a map from it (basically the same file, but smaller)
-	 * 
+	 * Takes a GAF 2.0 file and generates a map from it (basically the same file, but smaller)
+	 * GAF interesting columns:
+	 * 		http://www.geneontology.org/GO.format.gaf-2_0.shtml
+	 * 	3 - DB Object symbol - a gene symbol (external_gene_id can be mapped to)
+	 *  5 - Term ID (mandatory as the former one)
+	 *  10 - Gene name
+	 *  11 - Synonyms (non mandatory, as the former one, but strongly recommended
 	 * @param gafFilePath
 	 */
 	public static void map(String gafFilePath, String mapFilePath)
@@ -277,8 +126,9 @@ public class GOparser {
 					{
 					String[] fields=cad.split("\t");
 					String go=fields[4];
-					String orf=fields[10];
-					if(orf.indexOf("|")>0)	orf=orf.substring(0, orf.indexOf("|"));
+					//String orf=fields[10];//This can be non existing cause it is not mandatory, should include fields[2]
+					//if(orf.indexOf("|")>0)	orf=orf.substring(0, orf.indexOf("|"));	//these are several synonyms... might be interesting to get all of them
+					String orf=fields[2];
 					out.write(go+"\t"+orf); out.newLine();
 					}
 				}
@@ -375,6 +225,78 @@ public class GOparser {
 		}
 	
 	/**
+	 * 
+	 * @param m
+	 * @param path	GAF path
+	 * @param gene_id
+	 * @param type
+	 * @param ed
+	 * @return
+	 * @throws Exception
+	 */
+	public static TreeMap<OntologyTerm, TreeMap> annotateFromGAF(TreeMap<OntologyTerm, TreeMap> m, String path, ExpressionData ed) throws Exception 
+	{
+	BufferedReader in = null; 
+	
+	try{
+	in = new BufferedReader(new FileReader(path));
+		}catch(Exception e)		{	throw new Exception("File "+path+" not found");		}
+	
+	String header=in.readLine();
+	String []fields=header.split("\t");
+	
+	int id=2;//column of the gene id
+	int termColumn=4;
+	int synoColumn=10;
+	
+	String cad;
+	TreeMap<String, ArrayList<String>> annotations=new TreeMap<String, ArrayList<String>>();
+	TreeSet<String> mappedGenes=new TreeSet<String>();
+	while((cad=in.readLine())!=null)
+		{
+		if(!cad.startsWith("!"))
+			{	
+			fields=cad.split("\t");
+			if(fields!=null && fields[id].length()>0 && !fields[id].equals("NA"))	//add the annotation to a data structure
+				{
+				if(annotations.get(fields[termColumn])==null)
+					annotations.put(fields[termColumn], new ArrayList<String>());
+				annotations.get(fields[termColumn]).add(fields[id]);
+				mappedGenes.add(fields[id].toLowerCase());
+				
+				String[] synonyms=fields[synoColumn].split("\\|");
+				for(String synonym:synonyms)	
+					{
+					annotations.get(fields[termColumn]).add(synonym);
+					mappedGenes.add(synonym.toLowerCase());
+					}
+				}
+			}
+		}
+	
+	//---
+	if(ed!=null)
+		{
+		int nomap=0;
+		
+		for(String mg:ed.sortedGeneNames)
+			if(!mappedGenes.contains(mg))
+				{
+				nomap++;
+				}
+		System.out.println("Genes in the expression data but not annotated: "+nomap);
+		}
+	//---
+	
+	long time=System.currentTimeMillis();
+	addRecursiveAnnotations(annotations,m,null,0);
+	
+	System.out.println("time in adding annotations "+(System.currentTimeMillis()-time)/1000.0);
+	
+	return m;
+	}
+
+	/**
 	 * Adds to each OntologyTerm in m (recursively) genes related to it, following annotations
 	 * NOTE: if an OntologyTerm is annotated with some genes but its parent is not, the parent appears but without annotated genes
 	 * @param annotations
@@ -388,7 +310,6 @@ public class GOparser {
 		for(OntologyTerm ot:m.keySet())
 			{
 			ArrayList<String> annot=annotations.get(ot.id);
-			
 			if(annot!=null && ot.geneIds.size()==0)	ot.geneIds.addAll(annot);	//add annotations only once
 			
 			TreeMap<OntologyTerm,TreeMap> mc=m.get(ot);			//and keep recursing

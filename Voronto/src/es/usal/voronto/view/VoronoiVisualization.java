@@ -11,6 +11,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -95,8 +96,8 @@ public class VoronoiVisualization extends PApplet{
 	public static final int CUSTOM=12;
 	public static final int MEDIAN=0;
 	public static final int MEAN=1;
-	//public int whiteValue=MEDIAN;
-	public int whiteValue=MEAN;
+	public int whiteValue=MEDIAN;
+	//public int whiteValue=MEAN;
 	
 	private int type;
 	private boolean computedLabels=false;
@@ -129,7 +130,13 @@ public class VoronoiVisualization extends PApplet{
 	private DifExpSearch deSearchFrame;
 	private Cell selectedCell;
 	private int lineSpacing=0;
-	private boolean skewed=false;
+	private boolean skewed=true;
+	private final int AVERAGE_HEATMAP=0;
+	//private final int DETAIL_HEATMAP=1;
+	private final int PROFILE_LINE=1;
+	private final int PROFILE_PLOT=2;
+	private int profileType=AVERAGE_HEATMAP;
+	
 //	private final int MAX_TEXT_SIZE=8;
 //	private final int MIN_TEXT_SIZE=20;
 	
@@ -280,9 +287,11 @@ public class VoronoiVisualization extends PApplet{
 		//Note label
 		if(!saving)
 			{
-			textAlign(CENTER, CENTER);
+			//textAlign(CENTER, CENTER);
+			textAlign(LEFT, CENTER);
 			fill(200,200,200);
-			text(noteLabel, (int)(width*0.5-noteLabel.length()*0.5), this.END_Y+45);
+			//text(noteLabel, (int)(width*0.5-noteLabel.length()*0.5), this.END_Y+45);
+			text(noteLabel, 10, this.END_Y+45);
 			noFill();
 			}
 		
@@ -367,7 +376,22 @@ public class VoronoiVisualization extends PApplet{
 						//text(h.term.name+" ("+h.term.geneExs.size()+" "+(int)h.numLeaves+")", 10, (int)(END_Y+font.getSize()*0.5));
 						fill(255,255,255);
 						
-						drawProfile(h);
+						switch(profileType)
+							{
+							case AVERAGE_HEATMAP:
+								drawProfile(h);
+								break;
+							//case DETAIL_HEATMAP:
+							//	drawDetailedProfile(h);
+							//	break;
+							case PROFILE_LINE:
+							default:
+								drawProfileLine(h);
+								break;
+							case PROFILE_PLOT:
+								drawProfilePlot(h);
+								break;
+							}
 						}
 					}
 				//System.out.println("ids on term "+h.term.name+": "+h.term.geneIds.size());
@@ -398,7 +422,22 @@ public class VoronoiVisualization extends PApplet{
 				textAlign(LEFT, TOP);
 				text(selectedCell.term.name+" ("+(int)(selectedCell.numLeaves)+")", 10, (int)(END_Y+font.getSize()*0.5));
 				fill(255,255,255);
-				drawProfile(selectedCell);
+				switch(profileType)
+					{
+					case AVERAGE_HEATMAP:
+						drawProfile(selectedCell);
+						break;
+					//case DETAIL_HEATMAP:
+					//	drawDetailedProfile(selectedCell);
+					//	break;
+					case PROFILE_LINE:
+					default:
+						drawProfileLine(selectedCell);
+						break;
+					case PROFILE_PLOT:
+						drawProfilePlot(selectedCell);
+						break;
+					}
 				}
 			}
 				
@@ -466,6 +505,110 @@ public void drawNote(String text, Rectangle2D.Float bounds, PFont font)
 /**
  * Draws profile for the given cell
  */
+public void drawDetailedProfile(Cell c)
+	{
+	if(expData==null)	return;
+	
+	int squareSize=12;
+	
+	strokeWeight(1);
+	stroke(150);
+	for(int i=0;i<expData.getNumConditions();i++)
+		{
+		//draw empty square
+		strokeWeight(1);
+		stroke(150);
+		fill(200);
+		rect((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+i*squareSize, this.END_Y+20,squareSize,squareSize); 
+		
+		//fill with genes colors
+		noStroke();
+		int miniSize=(int)Math.max(1,((squareSize-1)/Math.ceil(Math.sqrt(c.term.geneExs.size()))));
+		int contX=0;
+		int contY=0;
+		Iterator<String> it=c.term.geneExs.keySet().iterator();
+		for(int j=0;j<Math.min((squareSize-1)*(squareSize-1), c.term.geneExs.size());j++)
+			{
+			String gene=it.next();
+			Color co=getColor(c.term.geneExs.get(gene), i);
+			fill(co.getRed(), co.getGreen(), co.getBlue());
+			
+			rect((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+i*squareSize+1+contX*miniSize, this.END_Y+20+1+contY*miniSize,miniSize,miniSize); 
+			
+			contX++;
+			if((contX+1)*miniSize>squareSize-1)	{contX=0;contY++;}
+			}
+		}
+	
+	strokeWeight(2);
+	stroke(0);
+	line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+squareSize,(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize+squareSize,this.END_Y+20+squareSize);
+	}
+
+/**
+ * Returns the color for the given expression array, corresponding to the given column
+ * @param exs
+ * @param col
+ * @return
+ */
+public Color getColor(ArrayList<Float> exs, int col)
+	{
+	setScale(expData, col);
+	if(exs==null)	return null;
+	int h=-1;
+	if(whiteValue==VoronoiVisualization.MEAN)	//raw coloring
+		{
+		switch(COLOR_MODE)
+			{
+			case VoronoiVisualization.COLOR_EXPRESSION:
+				if(exs.get(col)>avgExp)
+					{
+					h=(int)Math.round(255-((exs.get(col)-avgExp)/(maxExp-avgExp)*255));
+					return new Color(255,h,h);
+					}
+				else
+					{//h=(int)Math.round(255-(Math.abs(cell.expressionLevel.get(column)-avgExp)/Math.abs(minExp-avgExp))*255);
+					h=(int)Math.round(255-(Math.abs(exs.get(col)-avgExp)/Math.abs(minExp-avgExp))*255);
+					return new Color(h,h,255);
+					}
+			case VoronoiVisualization.COLOR_DEVIATION:
+				h=(int)Math.round(255-(Math.abs(exs.get(col)-avgExp)/Math.max(Math.abs(avgExp-minExp), Math.abs(avgExp-maxExp)))*255);
+				return new Color(h,255,h);
+			case VoronoiVisualization.COLOR_INTERNAL_DEVIATION://TODO: testing
+				/*if(cell.expressionDeviation.size()>0)	
+					h=(int)(255-(exs.get(col)/maxSd[col])*255);
+				else	h=255;
+				return new Color(h,255,h);*/
+				return null;
+			}
+		}
+	else	//quantile coloring --> note: color scaling 
+		{
+		switch(COLOR_MODE)
+			{
+			case VoronoiVisualization.COLOR_EXPRESSION:
+				int q=expData.getQuantile(exs.get(col));
+				if(q>=50)
+					{
+					h=(int)Math.round(255-((q-50.0)/50)*255);
+					return new Color(255,h,h);
+					}
+				else
+					{
+					h=(int)Math.round(255-((50.0-q)/50)*255);
+					return new Color(h,h,255);
+					}
+			case VoronoiVisualization.COLOR_DEVIATION:
+				System.err.println("Option not supported for quantiles");
+				return null;
+			case VoronoiVisualization.COLOR_INTERNAL_DEVIATION://TODO: testing
+				System.err.println("Option not supported for quantiles");
+				return null;
+			}
+		}
+	return null;
+	}
+
 public void drawProfile(Cell c)
 	{
 	if(expData==null)	return;
@@ -480,13 +623,10 @@ public void drawProfile(Cell c)
 			{
 			Color co=c.color.get(i);
 			fill(co.getRed(), co.getGreen(), co.getBlue());
-			//System.out.println(co.getRed()+" "+co.getGreen()+" "+co.getBlue());
 			rect((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+i*squareSize, this.END_Y+20,squareSize,squareSize);
 			}
 		}
 	
-	//strokeWeight(2);
-	//stroke(0);
 	Color co=c.color.get(selectedCol);
 	fill(co.getRed(), co.getGreen(), co.getBlue());
 	rect((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20,squareSize,squareSize);
@@ -494,6 +634,137 @@ public void drawProfile(Cell c)
 	stroke(0);
 	line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+squareSize,(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize+squareSize,this.END_Y+20+squareSize);
 	}
+
+public void drawProfileLine(Cell c)
+	{
+	if(expData==null)	return;
+	
+	int squareSize=12;
+	
+	strokeWeight(1);
+	stroke(220);
+	int em=squareSize*2;
+	int eM=0;
+	int eAvg=(int)(squareSize*2-squareSize*2*(expData.average-expData.min)/(expData.max-expData.min));
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5), this.END_Y+20+(int)em, 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)em);
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5), this.END_Y+20+(int)eM, 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)eM);
+	if(whiteValue==MEAN)
+		{
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5), this.END_Y+20+(int)eAvg, 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)eAvg);
+		}
+	else
+		{
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5), this.END_Y+20+(int)(em*0.5), 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)(em*0.5));
+		}
+	
+	strokeWeight(2);
+	stroke(100);
+	for(int i=0;i<expData.getNumConditions()-1;i++)
+		{
+		double e1;
+		double e2;
+		if(whiteValue==MEAN)
+			{
+			e1=squareSize*2-squareSize*2*(c.expressionLevel.get(i)-expData.min)/(expData.max-expData.min);
+			e2=squareSize*2-squareSize*2*(c.expressionLevel.get(i+1)-expData.min)/(expData.max-expData.min);
+			}
+		else
+			{
+			e1=squareSize*2-squareSize*2*(0.01*expData.getQuantile(c.expressionLevel.get(i)));
+			e2=squareSize*2-squareSize*2*(0.01*expData.getQuantile(c.expressionLevel.get(i+1)));
+			}
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+i*squareSize, this.END_Y+20+(int)e1, 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(i+1)*squareSize, this.END_Y+20+(int)e2);
+		}
+	
+	stroke(0);
+	fill(0);
+	double e;
+	if(whiteValue==MEAN)
+		e=squareSize*2-squareSize*2*(c.expressionLevel.get(selectedCol)-expData.min)/(expData.max-expData.min);
+	else
+		e=squareSize*2-squareSize*2*(0.01*expData.getQuantile(c.expressionLevel.get(selectedCol)));
+	ellipse((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+(int)e,2,2);
+	}
+
+public void drawProfilePlot(Cell c)
+	{
+	if(expData==null)	return;
+	
+	int squareSize=12;
+	strokeWeight(1);
+	stroke(220);
+	int em=squareSize*2;
+	int eM=0;
+	int eAvg=(int)(squareSize*2-squareSize*2*(expData.average-expData.min)/(expData.max-expData.min));
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5), this.END_Y+20+(int)em, 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)em);
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5), this.END_Y+20+(int)eM, 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)eM);
+	if(whiteValue==MEAN)
+		{
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5), this.END_Y+20+(int)eAvg, 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)eAvg);
+		}
+	else
+		{
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5), this.END_Y+20+(int)(em*0.5), 
+				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)(em*0.5));
+		}
+	
+	if(minHoveredCell.term.geneExs==null || minHoveredCell.term.geneExs.values().iterator().next().size()!=expData.getNumConditions())
+		minHoveredCell.computeExpressionProfile(expData);
+
+	noStroke();
+	fill(100);
+	for(int i=0;i<expData.getNumConditions();i++)
+		{
+		int rnd=-2;
+		Iterator<String> it=c.term.geneExs.keySet().iterator();
+		for(int j=0;j<c.term.geneExs.size();j++)
+			{
+			double e;
+			ArrayList<Float> p=c.term.geneExs.get(it.next());
+			if(whiteValue==MEAN)
+				{
+				e=squareSize*2-squareSize*2*(p.get(i)-expData.min)/(expData.max-expData.min);
+				}
+			else
+				{
+				e=squareSize*2-squareSize*2*(0.01*expData.getQuantile(p.get(i)));
+				}
+			
+			if(selectedCol==i)
+				{
+				fill(0);
+				ellipse((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+i*squareSize+rnd, this.END_Y+20+(int)e,1,1);
+				}
+			else
+				{
+				fill(150);
+				ellipse((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+i*squareSize+rnd, this.END_Y+20+(int)e,1,1);
+				}
+				
+			rnd++;
+			if(rnd>4)	rnd=-2;
+			}
+		}
+	
+	//stroke(0);
+	/*noStroke();
+	fill(0);
+	double e;
+	if(whiteValue==MEAN)
+		e=squareSize*2-squareSize*2*(c.expressionLevel.get(selectedCol)-expData.min)/(expData.max-expData.min);
+	else
+		e=squareSize*2-squareSize*2*(0.01*expData.getQuantile(c.expressionLevel.get(selectedCol)));
+	ellipse((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+(int)e,3,3);*/
+	}
+
 
 /**
  * Draws a scale bar that is skewed as data, to avoid confusions
@@ -539,16 +810,14 @@ public void drawSkewedScale()
 			case COLOR_EXPRESSION:
 				if(i>mid)
 					{
-					//h=(int)Math.round(255-((i-mid)/mid*2*255));
-					h=(int)Math.round(255-((i-mid)/Math.abs(mid)*255));
-					
+					h=(int)Math.round(255-((i-mid)/Math.abs(sw-mid)*255));
 					stroke(255,h,h);
 					if(hc!=null && hc.color.get(selectedCol).getRed()==255 && Math.abs(hc.color.get(selectedCol).getBlue()-h)<=jumpAbove)
 						drawReference=true;
 					}
 				else	
 					{
-					h=(int)Math.round(255-(Math.abs(i-mid)/Math.abs(mid))*255);
+					h=(int)Math.round(255-(Math.abs(i-mid)/Math.abs(sw-mid))*255);
 					stroke(h,h,255);
 					if(hc!=null && hc.color.get(selectedCol).getBlue()==255 && Math.abs(hc.color.get(selectedCol).getRed()-h)<=jumpBelow)
 						drawReference=true;
@@ -599,6 +868,7 @@ public void drawSkewedScale()
 	line((int)(x+sw*0.9),y+sh,(int)(x+sw*0.9),y+sh+1);*/
 	noStroke();
 	}
+
 /**
  * Draws a scale bar
  */
@@ -708,7 +978,8 @@ public void recursiveRegionDrawing(Cell cell, int level)
 		this.stroke(120);
 		strokeWeight(getWidth(cell));
 		
-		fill(cell.color.get(selectedCol).getRGB());
+		if(cell.color!=null && cell.color.size()>0)	fill(cell.color.get(selectedCol).getRGB());
+		else										fill(240,240,240);
 		cell.region.draw(this); // draw this shape
 		
 		if(SHOW_LABELS && cell.labelSize>0)
@@ -1369,6 +1640,9 @@ public void keyReleased()
 		case 'l'://cell labels
 			SHOW_LABELS=!SHOW_LABELS;
 			break;
+		case 'r': //pRofile type
+			profileType=(profileType+1)%3;
+			break;
 		case 'p':
 			JFileChooser selecFile = new JFileChooser();
 			selecFile.addChoosableFileFilter(new ImageFileFilter());
@@ -1629,6 +1903,43 @@ public void mapExpression(ExpressionData md)
 	return;
 	}
 
+public void setScale(ExpressionData md, int col)
+	{
+	//Different options: 
+		//a) against min and max of overall md
+		//b) against min and max of overall md[col] -> we will start by this one, but not sure what's best, possibly last one
+		//c) against min and max of mapped cell expressions
+		switch(SCALE_MODE)
+			{
+			case SCALE_MATRIX:
+			//	System.out.println("Changing scale to mode MATRIX");
+				minExp=md.min;
+				maxExp=md.max;
+				avgExp=md.average;
+				medianExp=md.median;
+				break;
+			case SCALE_CONDITION:
+			//	System.out.println("Changing scale to mode CONDITION");
+				minExp=md.minCols[col];
+				maxExp=md.maxCols[col];
+				avgExp=md.averageCols[col];
+				medianExp=md.medianCols[col];
+				break;
+			case SCALE_ONTOLOGY:
+				//System.out.println("Changing scale to mode ONTOLOGY");
+				minExp=1000000000;
+				maxExp=-1000000000;
+				avgExp=0;
+				contAvgExp=0;
+				break;
+			}
+		//System.out.println("Mapping expression for "+md.getColumnLabel(col)+" in scale mode "+SCALE_MODE);
+		
+		
+		if(SCALE_MODE==SCALE_ONTOLOGY)
+			avgExp/=contAvgExp;
+		}
+
 /**Maps expression in md (in experiment col) to voronoi regions
  * 
  * @param md
@@ -1636,40 +1947,8 @@ public void mapExpression(ExpressionData md)
 public void expression2color(ExpressionData md, int col)
 	{
 	if(expData==null)	{System.err.println("No expression data provided for mapping"); return;}
-	//Different options: 
-	//a) against min and max of overall md
-	//b) against min and max of overall md[col] -> we will start by this one, but not sure what's best, possibly last one
-	//c) against min and max of mapped cell expressions
-	switch(SCALE_MODE)
-		{
-		case SCALE_MATRIX:
-		//	System.out.println("Changing scale to mode MATRIX");
-			minExp=md.min;
-			maxExp=md.max;
-			avgExp=md.average;
-			medianExp=md.median;
-			break;
-		case SCALE_CONDITION:
-		//	System.out.println("Changing scale to mode CONDITION");
-			minExp=md.minCols[col];
-			maxExp=md.maxCols[col];
-			avgExp=md.averageCols[col];
-			medianExp=md.medianCols[col];
-			break;
-		case SCALE_ONTOLOGY:
-			//System.out.println("Changing scale to mode ONTOLOGY");
-			minExp=1000000000;
-			maxExp=-1000000000;
-			avgExp=0;
-			contAvgExp=0;
-			break;
-		}
-	//System.out.println("Mapping expression for "+md.getColumnLabel(col)+" in scale mode "+SCALE_MODE);
-	
+	setScale(md, col);
 	Cell[] cells=v.getCells();
-	
-	if(SCALE_MODE==SCALE_ONTOLOGY)
-		avgExp/=contAvgExp;
 	for(Cell c:cells)	
 		recursiveExpressionNormalization(c, col);
 	
@@ -1771,7 +2050,8 @@ public void recursiveExpressionNormalization(Cell cell, int column)
 			cell.color=new ArrayList<Color>();
 			cell.color.add(0, new Color(255,255,255));
 			}
-		else			cell.color.set(column, new Color(255,255,255));
+		else			
+			cell.color.set(column, new Color(255,255,255));
 		}
 	//2) Continue with recursion
 	//if(cell.subcells!=null && cell.subcells.length>1)	

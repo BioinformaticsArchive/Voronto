@@ -22,6 +22,7 @@ import javax.swing.JLabel;
 import javax.swing.filechooser.FileFilter;
 
 import es.usal.voronto.control.Voronto;
+import java.awt.Font;
 
 
 /**
@@ -52,10 +53,13 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 	
 	public JComboBox jComboBox1;
 	public File expressionFile;
+	public File annotationFile;
 	private File ontologyFile;
+	public String ontologyType;
 	private Voronto parent;
 	private JLabel jLabel8;
 	private JLabel jLabel9;
+	private JLabel jLabel10;
 
 	/**
 	* Auto-generated main method to display this 
@@ -70,7 +74,7 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 	
 	private void initGUI() {
 		try {
-			this.setPreferredSize(new java.awt.Dimension(507, 300));
+			this.setPreferredSize(new Dimension(507, 334));
 			this.setLayout(null);
 			this.setBackground(new java.awt.Color(255,255,255));
 			this.setSize(700, 400);
@@ -158,18 +162,20 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 				jComboBox1.setSelectedIndex(0);
 				jComboBox1.addActionListener(new java.awt.event.ActionListener() {
 
-					//private File ontologyFile;
-
-					
+				
 					@Override
 					public void actionPerformed(ActionEvent e) 
 						{
 						if(jComboBox1.getSelectedIndex()==5)
 							{
 							JFileChooser selecFile = new JFileChooser();
-							XMLDataFilter edf=new XMLDataFilter();
-							selecFile.addChoosableFileFilter(edf);
-							selecFile.setFileFilter(edf);
+							//XMLDataFilter edf=new XMLDataFilter();
+							//selecFile.addChoosableFileFilter(edf);
+							
+							OBODataFilter odf=new OBODataFilter();
+							selecFile.addChoosableFileFilter(odf);
+							
+							selecFile.setFileFilter(odf);
 							
 							String path=null;
 							try{
@@ -186,7 +192,11 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 							if(returnval == JFileChooser.APPROVE_OPTION) 
 								{
 								ontologyFile = selecFile.getSelectedFile();
+								ontologyType = selecFile.getFileFilter().getDescription();
 								jLabel9.setText(ontologyFile.getAbsolutePath());
+								
+								if(ontologyType.contains("obo"))
+									jLabel10.setVisible(true);
 								}
 							}
 						else
@@ -201,7 +211,7 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 				jLabel6 = new JLabel();
 				this.add(jLabel6);
 				jLabel6.setText("3) Launch application!");
-				jLabel6.setBounds(124, 263, 162, 19);
+				jLabel6.setBounds(124, 288, 162, 19);
 				
 			}
 			{
@@ -209,8 +219,8 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 				this.add(jButton2);
 				jButton2.setText("Launch");
 				jButton2.setBackground(new java.awt.Color(255,255,255));
-				jButton2.setBounds(392, 265, 100, 22);
-				jButton2.setEnabled(false);
+				jButton2.setBounds(390, 287, 100, 22);
+				//jButton2.setEnabled(false);	//TODO: commented just for tests!
 				jButton2.addActionListener(new java.awt.event.ActionListener() {
 					public void actionPerformed(java.awt.event.ActionEvent e) 
 						{
@@ -243,13 +253,73 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 				jLabel9.setFont(new java.awt.Font("Dialog",0,10));
 				jLabel9.setForeground(new Color(150,150,255));
 			}
+			
+			jLabel10 = new JLabel("Click here to load an annotation file for OBO ontology...");
+			jLabel10.setForeground(Color.BLUE);
+			jLabel10.setFont(new Font("Lucida Grande", Font.PLAIN, 10));
+			jLabel10.setBounds(136, 255, 365, 16);
+			jLabel10.setVisible(false);
+			jLabel10.addMouseListener(this);
+			add(jLabel10);
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
+	
+	
+	
+	
+	
+	
+	/**
+	 * OBO file format filter for JFileChooser
+	 * @author Rodrigo	Santamaria
+	 */
+	private static class OBODataFilter extends FileFilter{
+	    static final String getExtension(File f) {
+	        String ext = null;
+	        String s = f.getName();
+	        int i = s.lastIndexOf('.');
 
+	        if (i > 0 &&  i < s.length() - 1) {
+	            ext = s.substring(i+1).toLowerCase();
+	        }
+	        return ext;
+	    }
+	    
+	  
+	    /**
+	     * Decides if a file is acceptable as Microarray file
+	     * @param	f	File to check
+	     * @return	true if the file extension is txt, false otherwise
+	     */
+	    public boolean accept(File f) 
+	    	{
+	        if (f.isDirectory()) 							       return true;
+
+	        String extension = getExtension(f);
+	        if (extension != null) 
+	        	{
+	            if (extension.equals("obo"))                  return true;
+	            else								          return false;
+	            }
+
+	        return false;
+	    	}
+
+	    //The description of this filter
+	    /**
+	     * Returns the description of Microarray files
+	     * @return	A brief String description of expected files for Microarray.
+	     */
+	    public String getDescription() {
+	        return "OBO format (.obo)";
+	    }
+	}
+	
 /**
  * Expression file format filter for JFileChooser
  * @author Rodrigo	Santamaria
@@ -267,15 +337,6 @@ private static class ExpressionDataFilter extends FileFilter{
     }
     
   
-   /* static final String getExtension(String s) 
-    	{
-        String ext = null;
-        int i = s.lastIndexOf('.');
-
-        if (i > 0 &&  i < s.length() - 1)          ext = s.substring(i+1).toLowerCase();
-        return ext;
-    	}*/
-    
     /**
      * Decides if a file is acceptable as Microarray file
      * @param	f	File to check
@@ -322,17 +383,7 @@ private static class XMLDataFilter extends FileFilter{
         return ext;
     }
     
-  /*
-    static final String getExtension(String s) 
-    	{
-        String ext = null;
-        int i = s.lastIndexOf('.');
-
-        if (i > 0 &&  i < s.length() - 1)          ext = s.substring(i+1).toLowerCase();
-        return ext;
-    	}*/
-    
-    /**
+     /**
      * Decides if a file is acceptable as Microarray file
      * @param	f	File to check
      * @return	true if the file extension is txt, false otherwise
@@ -361,11 +412,56 @@ private static class XMLDataFilter extends FileFilter{
     }
 }
 
+/**
+ * Annotation format filter for JFileChooser
+ * @author Rodrigo	Santamaria
+ */
+private static class GAFDataFilter extends FileFilter{
+    static final String getExtension(File f) {
+        String ext = null;
+        String s = f.getName();
+        int i = s.lastIndexOf('.');
+
+        if (i > 0 &&  i < s.length() - 1) {
+            ext = s.substring(i+1).toLowerCase();
+        }
+        return ext;
+    }
+    
+     /**
+     * Decides if a file is acceptable as Microarray file
+     * @param	f	File to check
+     * @return	true if the file extension is txt, false otherwise
+     */
+    public boolean accept(File f) 
+    	{
+        if (f.isDirectory()) 							       return true;
+
+        String extension = getExtension(f);
+        if (extension != null) 
+        	{
+            if (extension.equals("gaf"))                  return true;
+            else								          return false;
+            }
+
+        return false;
+    	}
+
+    //The description of this filter
+    /**
+     * Returns the description of Microarray files
+     * @return	A brief String description of expected files for Microarray.
+     */
+    public String getDescription() {
+        return "GAF 2.0 format (.gaf)";
+    }
+}
+
 public void reset()
 	{
 	//jLabel8.setText("");
 	jLabel9.setText("");
-	if(this.expressionFile==null)	jButton2.setEnabled(false);
+	//if(this.expressionFile==null)	jButton2.setEnabled(false);
 	}
 
 @Override
@@ -402,6 +498,32 @@ public void mouseReleased(MouseEvent arg0) {
 				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://vis.usal.es/~visusal/voronto/voronto/Help.html"));
 			}catch(IOException ioe){ioe.printStackTrace();}
 			}
+		if((JLabel)(arg0.getSource())==jLabel10)
+		{
+		try{
+			JFileChooser selecFileGAF = new JFileChooser();
+			GAFDataFilter gdf=new GAFDataFilter();
+			selecFileGAF.addChoosableFileFilter(gdf);
+			selecFileGAF.setFileFilter(gdf);
+			
+			String path=null;
+			try{
+				BufferedReader br=new BufferedReader(new FileReader(parent.ontologyPath));
+				path=br.readLine();
+				}catch(Exception ex){System.out.println("pathFile non existing yet");}
+			if(path!=null)		selecFileGAF.setCurrentDirectory(new File(path));
+			else				selecFileGAF.setCurrentDirectory(new File("."));
+			
+			int returnval = selecFileGAF.showDialog(this, "Load annotations");
+			if(returnval == JFileChooser.APPROVE_OPTION) 
+				{
+				annotationFile = selecFileGAF.getSelectedFile();
+				jLabel10.setText("Annotation file: "+annotationFile.getAbsolutePath());
+				}
+		
+			}catch(Exception ioe){ioe.printStackTrace();}
+		}
+
 		}
 }
 }

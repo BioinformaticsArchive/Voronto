@@ -122,6 +122,7 @@ public class BernhardtTessellation {
 		return p;
 		}
 	
+	
 	public Cell buildCell(OntologyTerm term, int level)
 		{
 		Cell c=new Cell(1, term, level);
@@ -140,7 +141,7 @@ public class BernhardtTessellation {
 				break;
 			default:
 				System.err.println("No matched ontology");
-				c.numLeaves=c.getNumMatchedTerms(expData);
+				if(expData!=null)	c.numLeaves=c.getNumMatchedTerms(expData);
 				break;
 			}
 		c.weight=c.numLeaves;	//In general, the term has a size proportional to the number of genes annotated with it
@@ -160,7 +161,6 @@ public class BernhardtTessellation {
 	if(m!=null)	names=m.keySet().toArray(new OntologyTerm[0]);
 	else		return null;
 	
-	//if(names==null || names.length==0 || level==maxDepth) //NOTE: this might work with the new schema where geneIds assures to get everyone on the subterms	
 	if(names==null || names.length==0)	
 		{
 		if(expData!=null)
@@ -177,7 +177,6 @@ public class BernhardtTessellation {
 			if(term.geneIds==null || term.geneIds.size()==0)	return new Cell(1, term, level);
 			else											
 				{
-			//	System.out.println("Adding leaf node with "+term.geneIds.size()+" genes");
 				return new Cell(term.geneIds.size(), term, level);
 				}
 			}
@@ -196,9 +195,21 @@ public class BernhardtTessellation {
 				cs.add(sc);
 			}
 		
-		Cell c=buildCell(term, level);
-		c.subcells=cs.toArray(new Cell[0]);
-		
+		Cell c=null;
+		if(expData!=null)
+			{
+			c=buildCell(term, level);
+			c.subcells=cs.toArray(new Cell[0]);
+			}
+		else
+			{
+			c=new Cell(term, level, cs);
+			//if(expData==null)	c.weight=c.numLeaves=cs.size();
+			/*if(expData!=null && c.weight==0 && ontology=VoronoiVisualization.CUSTOM)
+				{//add leaves on 
+				
+				}*/
+			}
 		if(c!=null && c.weight>0)
 			return c;
 		else
