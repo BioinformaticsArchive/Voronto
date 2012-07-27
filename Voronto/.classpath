@@ -86,5 +86,6 @@
 	<classpathentry kind="lib" path="lib/caBigReactomeClient/saaj.jar"/>
 	<classpathentry kind="lib" path="lib/caBigReactomeClient/wsdl4j-1.5.1.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/batikfont.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

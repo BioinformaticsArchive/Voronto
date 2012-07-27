@@ -2,6 +2,7 @@ package es.usal.voronto.view;
 
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -255,7 +256,7 @@ public class VoronoiVisualization extends PApplet{
 		{
 		//strokeWeight(0);
 		noStroke();
-		fill(255,255,255);
+		fill(255);
 		rect(0,0,width,height);
 		noFill();
 		
@@ -980,7 +981,7 @@ public void recursiveRegionDrawing(Cell cell, int level)
 		
 		if(cell.color!=null && cell.color.size()>0)	fill(cell.color.get(selectedCol).getRGB());
 		else										fill(240,240,240);
-		cell.region.draw(this); // draw this shape
+		cell.region.draw(this.g); // draw this shape
 		
 		if(SHOW_LABELS && cell.labelSize>0)
 			{
@@ -1646,22 +1647,41 @@ public void keyReleased()
 		case 'p':
 			JFileChooser selecFile = new JFileChooser();
 			selecFile.addChoosableFileFilter(new ImageFileFilter());
+			//selecFile.addChoosableFileFilter(new PDFFileFilter());
+			
+			
 			if(expData!=null)	
 				{
 				selecFile.setCurrentDirectory(new File(expData.filePath));
-				selecFile.setSelectedFile(new File("voronto-"+expData.organismKegg+"-"+expData.conditionNames[this.selectedCol]+".tif"));
+				selecFile.setSelectedFile(new File("voronto-"+expData.organismKegg+"-"+expData.conditionNames[this.selectedCol].replace("/", "-")+".png"));
 				}
 			else
-				selecFile.setSelectedFile(new File("voronto.tif"));
+				selecFile.setSelectedFile(new File("voronto.png"));
 			
 			int returnval = selecFile.showSaveDialog(this);
 
 			if(returnval==JFileChooser.APPROVE_OPTION)
 				{
 				saving=true;
-				redraw();
 				try{Thread.sleep(1000);}catch(Exception e){}
-				save(selecFile.getSelectedFile().getAbsolutePath());
+				/*if(selecFile.getFileFilter().equals(new ImageFileFilter()))
+					{
+					redraw();
+					save(selecFile.getSelectedFile().getAbsolutePath());
+					}
+				else*///Saving hi-res
+					{
+					int scaleFactor=3;
+					PGraphics hires = createGraphics(width*scaleFactor, height*scaleFactor, JAVA2D);
+					PGraphics ant=this.g;
+					this.g=hires;
+					beginRecord(hires);
+					hires.scale(scaleFactor);
+					draw();
+					endRecord();
+					hires.save(selecFile.getSelectedFile().getAbsolutePath());
+					this.g=ant;
+					}
 				saving=false;
 				redraw();
 				}
@@ -2080,19 +2100,7 @@ private class ImageFileFilter extends FileFilter {
         return ext;
     }
 	
-	/**
-     * Returns the extension of a string (the three letters after the dot)
-     * @param s	String to get the extension
-     * @return	extension of s
-     */
- /*   public final String getExtension(String s) 
-    	{
-        String ext = null;
-        int i = s.lastIndexOf('.');
 
-        if (i > 0 &&  i < s.length() - 1)          ext = s.substring(i+1).toLowerCase();
-        return ext;
-    	}*/
     
     /**
      * Decides if a file is acceptable as TRN file
@@ -2107,11 +2115,7 @@ private class ImageFileFilter extends FileFilter {
         if (extension != null) 
         	{
         	if (extension.equals("png"))                  return true;
-        	if (extension.equals("tga"))                  return true;
-        	if (extension.equals("tif"))                  return true;
-        	if (extension.equals("jpg"))                  return true;
-        	if (extension.equals("jpeg"))                 return true;
-            else							              return false;
+        	else							              return false;
             }
 
         return false;
@@ -2123,10 +2127,58 @@ private class ImageFileFilter extends FileFilter {
      * @return	A brief description of expected files for TRN.
      */
     public String getDescription() {
-        return "Image file (.png, .tga, .tif, .jpg, .jpeg)";
+        return "Image file (.png)";
     }
 }
 
+private class PDFFileFilter extends FileFilter {
+
+	 /**
+    * Returns the extension of a file (the three letters after the dot)
+    * @param f	File to get the extension
+    * @return	extension of f
+    */
+	public final String getExtension(File f) {
+       String ext = null;
+       String s = f.getName();
+       int i = s.lastIndexOf('.');
+
+       if (i > 0 &&  i < s.length() - 1) {
+           ext = s.substring(i+1).toLowerCase();
+       }
+       return ext;
+   }
+	
+
+   
+   /**
+    * Decides if a file is acceptable as TRN file
+    * @param	f	File to check
+    * @return	true if the file extension is xml or gml, false otherwise
+    */
+   public boolean accept(File f) 
+   	{
+       if (f.isDirectory()) 							       return true;
+
+       String extension = getExtension(f);
+       if (extension != null) 
+       	{
+       	if (extension.equals("pdf"))                  return true;
+       	else							              return false;
+        }
+
+       return false;
+   	}
+
+   //The description of this filter
+   /**
+    * Returns the description of TRN files
+    * @return	A brief description of expected files for TRN.
+    */
+   public String getDescription() {
+       return "PDF file (.pdf)";
+   }
+}
 
 
 public void search(String searchText) {

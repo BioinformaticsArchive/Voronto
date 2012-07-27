@@ -102,7 +102,7 @@ public class GOparser {
 		}
 	
 	/**
-	 * Takes a GAF 2.0 file and generates a map from it (basically the same file, but smaller)
+	 * Takes a GAF 2.0 file and generates a map from it (basically the same file, but smaller: for Human from 57M to 5.8M)
 	 * GAF interesting columns:
 	 * 		http://www.geneontology.org/GO.format.gaf-2_0.shtml
 	 * 	3 - DB Object symbol - a gene symbol (external_gene_id can be mapped to)
@@ -124,6 +124,31 @@ public class GOparser {
 				{	
 				if(!cad.startsWith("!"))
 					{
+					String[] fields=cad.split("\t");
+					String go=fields[4];
+					//String orf=fields[10];//This can be non existing cause it is not mandatory, should include fields[2]
+					//if(orf.indexOf("|")>0)	orf=orf.substring(0, orf.indexOf("|"));	//these are several synonyms... might be interesting to get all of them
+					String orf=fields[2];
+					out.write(go+"\t"+orf); out.newLine();
+					}
+				}
+			out.close();
+		}catch(Exception e){e.printStackTrace();}
+		}
+	
+	public static void map2(String gafFilePath, String mapFilePath)
+		{
+		BufferedReader in;
+		BufferedWriter out;
+		try {
+			in = new BufferedReader(new FileReader(gafFilePath));
+			out = new BufferedWriter(new FileWriter(mapFilePath));
+			out.write("go_id\tgenes");	out.newLine();
+			String cad=null;
+			while((cad=in.readLine())!=null)
+				{	
+				if(!cad.startsWith("!"))
+					sss{
 					String[] fields=cad.split("\t");
 					String go=fields[4];
 					//String orf=fields[10];//This can be non existing cause it is not mandatory, should include fields[2]
