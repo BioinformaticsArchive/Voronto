@@ -1743,6 +1743,10 @@ public void keyReleased()
 			expression2color(this.expData);
 			redraw();
 			break;
+		case 'n'://change gene ids shown on cell heatmap
+			System.out.println("changing names!");
+			break;
+		
 		}
 	redraw();
 	}

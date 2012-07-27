@@ -50,6 +50,8 @@ public class CellHeatmap extends PApplet
 	private ArrayList<Integer> order;
 	private static int titleHeight=22;
 	
+	int nameType=1;
+	
 	
 	public CellHeatmap(Cell c, PFont font, VoronoiVisualization v)
 		{
@@ -150,11 +152,29 @@ public class CellHeatmap extends PApplet
 		if(mouseEvent.getClickCount()==2 && hoveredGene!=null)
 			{
 			try{
+			String entrezLabel=vv.expData.getSynonym(hoveredGene, vv.expData.ENTREZ);
+				
 			if(vv.expData.chip.equals("entrezgene"))
 				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+hoveredGene));
+			else if(entrezLabel!=null)
+				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+entrezLabel));
 			else
 				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+hoveredGene+"%20AND%20"+vv.expData.organism.replace(" ", "%20")+"%5BOrganism%5D"));
 			}catch(IOException e){System.out.println("Error: cannot show webpage: "+e.getMessage()); e.printStackTrace();}
+			}
+			
+		}
+	
+	public void keyReleased()
+		{
+		switch(key)
+			{
+			case 'n'://change gene ids shown on cell heatmap
+				nameType=(nameType+1)%3;
+				redraw();
+				break;
+			default:
+				break;
 			}
 			
 		}
@@ -211,7 +231,6 @@ public class CellHeatmap extends PApplet
 				String gene=null;
 			
 				gene=names[order.get(i+cont)];
-				
 				if(mouseY>(margin+marginCols+(i)*size) && mouseY<(margin+marginCols+(i+1)*size) && mouseX>xDisplacement && mouseX<xDisplacement+basicWidth)
 					{
 					fill(0);
@@ -219,7 +238,11 @@ public class CellHeatmap extends PApplet
 					}
 				else
 					fill(154);
-				text(gene.substring(gene.indexOf(":")+1).toUpperCase(),marginRows+xDisplacement, (float)(margin+marginCols+(i+0.5)*size));
+				
+				String geneLabel=vv.expData.getSynonym(gene, nameType);
+				if(geneLabel==null)	geneLabel="";
+				//text(gene.substring(gene.indexOf(":")+1).toUpperCase(),marginRows+xDisplacement, (float)(margin+marginCols+(i+0.5)*size));
+				text(geneLabel.substring(geneLabel.indexOf(":")+1).toUpperCase(),marginRows+xDisplacement, (float)(margin+marginCols+(i+0.5)*size));
 				
 				ArrayList<Float> exs=cell.term.geneExs.get(gene);
 				for(int j=0;j<numCols;j++)

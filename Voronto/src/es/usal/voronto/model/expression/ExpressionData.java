@@ -4,6 +4,8 @@ package es.usal.voronto.model.expression;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -79,6 +81,27 @@ public class ExpressionData
 	 * Gene names.
 	 */
 	public String[] geneNames;
+	
+	//Classes for quick searching in gene lists
+	public HashMap<String, ArrayList<Integer>> geneNamesHash;
+	public String[] sortedGeneNames;
+	public HashMap<Integer, Integer> order;//maps ordered position to real position
+
+	//Sorted gene names synonyms loaded from es/usal/voronto/data/synonym for the corresponding organismKegg, if available
+	public String[] entrezgene;
+	public String[] ensembl_gene_id;
+	public String[] external_gene_id;
+	//geneName as keys, synonym as values
+	public HashMap<String,String> entrezgeneHash=null;
+	public HashMap<String,String> ensembl_gene_idHash=null;
+	public HashMap<String,String> external_gene_idHash=null;
+	
+	public final int ENTREZ=0;
+	public final int SYMBOL=1;
+	public final int ENSEMBL=2;
+	
+
+	
 	public String[] geneKOIDs;
 	public ArrayList<String> koidList;
 	
@@ -176,10 +199,6 @@ public class ExpressionData
 	public String sortingFactor="Column ID";
 	public String organismKegg;
 	
-	//Classes for quick searching in gene lists
-	public HashMap<String, ArrayList<Integer>> geneNamesHash;
-	public String[] sortedGeneNames;
-	public HashMap<Integer, Integer> order;//maps ordered position to real position
 	
 	/**
 	 * Constructor from a file
@@ -773,11 +792,17 @@ public class ExpressionData
 		}catch(Exception e){e.printStackTrace();}
 			
 	conditionNames=new String[numConditions];
+	
 	geneNames=new String[numGenes];
+	entrezgene=new String[numGenes];
+	ensembl_gene_id=new String[numGenes];
+	external_gene_id=new String[numGenes];
+	
 	geneNamesHash=new HashMap<String, ArrayList<Integer>>();
 	geneKOIDs=new String[numGenes];
 	koidList=new ArrayList<String>();
 	columnOrder=new int[numConditions];
+	
 	for(int i=0;i<numConditions;i++)	columnOrder[i]=i;
 	System.out.println("Matrix with "+numGenes+" rows and "+numConditions+" columns");
 
@@ -888,11 +913,59 @@ public class ExpressionData
 	computeQuantiles();
 	sortGeneNames();
 	
+	generateSynonyms();
 	
 	return 0;
 	}
 
 	
+private void generateSynonyms()
+	{
+	try{
+		BufferedReader in = new BufferedReader(new InputStreamReader(Thread.currentThread().getContextClassLoader().getResourceAsStream("es/usal/voronto/data/synonym/"+organismKegg+".syn")));
+		entrezgene=Arrays.copyOf(geneNames, geneNames.length);
+		external_gene_id=Arrays.copyOf(geneNames, geneNames.length);
+		ensembl_gene_id=Arrays.copyOf(geneNames, geneNames.length);
+		entrezgeneHash=new HashMap<String,String>();
+		ensembl_gene_idHash=new HashMap<String,String>();
+		external_gene_idHash=new HashMap<String,String>();
+		
+		String cad=null;
+		int cont=0;
+		while((cad=in.readLine())!=null)
+			{
+			String[] sp=cad.split("\t");
+			String ent=sp[0];
+			String ext=sp[1];
+			String ens=sp[2];
+			int pos=-1;
+			
+			if(this.chip.equals("entrezgene"))
+				pos=Arrays.binarySearch(sortedGeneNames, ent.toLowerCase());
+			else if(this.chip.equals("ensembl_gene_id"))
+				pos=Arrays.binarySearch(sortedGeneNames, ens.toLowerCase());
+			else if(this.chip.equals("external_gene_id"))
+				pos=Arrays.binarySearch(sortedGeneNames, ext.toLowerCase());
+			if(pos>0)
+				{
+				entrezgene[pos]=ent;
+				ensembl_gene_id[pos]=ens;
+				external_gene_id[pos]=ext;
+				if(ent!=null && ent.length()>0)	entrezgeneHash.put(sortedGeneNames[pos],ent);
+				if(ens!=null && ens.length()>0)	ensembl_gene_idHash.put(sortedGeneNames[pos],ens);
+				if(ext!=null && ext.length()>0)	external_gene_idHash.put(sortedGeneNames[pos],ext);
+				cont++;
+				//System.out.println("Gene "+pos+" with name "+sortedGeneNames[pos]+" is "+entrezgene[pos]+"\t"+ensembl_gene_id[pos]+"\t"+external_gene_id[pos]);
+				}
+			}
+		//System.out.println(cont+" genes out of "+geneNames.length+" have recorded synonyms");
+		}
+	catch(IOException ioe)
+		{
+		System.out.println("No synonym list recorder for organism "+organismKegg);
+		}
+	}
+
 public void sortGeneNames()
 	{
 	long time=System.currentTimeMillis();
@@ -1157,6 +1230,23 @@ public void loadMicroarray(String path, boolean invert, int rowHeader, int colHe
 	for(int i=0;i<100;i++)
 		if(exp < this.quantileCols.get(column)[i])	return i;
 	return 100;
+	}
+
+	public String getSynonym(String name, int nameType) {
+		switch(nameType)
+			{
+			case ENTREZ:
+				if(entrezgeneHash==null)	return null;
+				return entrezgeneHash.get(name);
+			case SYMBOL:
+				if(external_gene_idHash==null)	return null;
+				return external_gene_idHash.get(name);
+			case ENSEMBL:
+				if(ensembl_gene_idHash==null)	return null;
+				return ensembl_gene_idHash.get(name);
+			default:
+				return name;
+			}
 	}
 	
 	
