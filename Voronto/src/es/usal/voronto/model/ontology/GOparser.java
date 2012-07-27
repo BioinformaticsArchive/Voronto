@@ -148,7 +148,7 @@ public class GOparser {
 			while((cad=in.readLine())!=null)
 				{	
 				if(!cad.startsWith("!"))
-					sss{
+					{
 					String[] fields=cad.split("\t");
 					String go=fields[4];
 					//String orf=fields[10];//This can be non existing cause it is not mandatory, should include fields[2]
