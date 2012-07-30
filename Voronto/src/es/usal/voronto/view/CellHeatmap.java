@@ -152,14 +152,14 @@ public class CellHeatmap extends PApplet
 		if(mouseEvent.getClickCount()==2 && hoveredGene!=null)
 			{
 			try{
-			String entrezLabel=vv.expData.getSynonym(hoveredGene, vv.expData.ENTREZ);
+			//String entrezLabel=vv.expData.getSynonym(hoveredGene, vv.expData.ENTREZ);
 				
 			if(vv.expData.chip.equals("entrezgene"))
 				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+hoveredGene));
-			else if(entrezLabel!=null)
-				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+entrezLabel));
+			//else if(entrezLabel!=null)
+			//	java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+entrezLabel));
 			else
-				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+hoveredGene+"%20AND%20"+vv.expData.organism.replace(" ", "%20")+"%5BOrganism%5D"));
+				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+hoveredGene.toUpperCase()+"%20AND%20"+vv.expData.organism.replace(" ", "%20")+"%5BOrganism%5D"));
 			}catch(IOException e){System.out.println("Error: cannot show webpage: "+e.getMessage()); e.printStackTrace();}
 			}
 			
@@ -239,8 +239,8 @@ public class CellHeatmap extends PApplet
 				else
 					fill(154);
 				
-				String geneLabel=vv.expData.getSynonym(gene, nameType);
-				if(geneLabel==null)	geneLabel="";
+				String geneLabel=vv.expData.getSynonym(gene.toLowerCase(), nameType);
+				if(geneLabel==null)	geneLabel=gene;
 				//text(gene.substring(gene.indexOf(":")+1).toUpperCase(),marginRows+xDisplacement, (float)(margin+marginCols+(i+0.5)*size));
 				text(geneLabel.substring(geneLabel.indexOf(":")+1).toUpperCase(),marginRows+xDisplacement, (float)(margin+marginCols+(i+0.5)*size));
 				

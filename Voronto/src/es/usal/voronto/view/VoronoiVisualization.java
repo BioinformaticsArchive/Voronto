@@ -2274,12 +2274,29 @@ public ArrayList<Cell> recursiveSearch(Cell cell, String searchText, int level)
 			}
 		else
 			for(String id:cell.term.geneIds)
+				{
 				if(id.toLowerCase().contains(searchText.toLowerCase()))	
 					{
 					cell.searchedColor=new Color(0,200,0);
 					retList.add(cell); 
 					break;
 					}
+				else
+					{
+					String id2=id.substring(id.indexOf(":")+1).toLowerCase();
+					String syn0=expData.getSynonym(id2, 0);
+					String syn1=expData.getSynonym(id2, 1);
+					String syn2=expData.getSynonym(id2, 2);
+					if((syn0!=null && syn0.toLowerCase().contains(searchText.toLowerCase())) ||
+							(syn1!=null && syn1.toLowerCase().contains(searchText.toLowerCase())) || 
+							(syn2!=null && syn2.toLowerCase().contains(searchText.toLowerCase())))
+						{
+						cell.searchedColor=new Color(0,200,0);
+						retList.add(cell); 
+						break;
+						}
+					}
+				}
  		}
 	else
 		{

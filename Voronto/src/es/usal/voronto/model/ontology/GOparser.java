@@ -204,6 +204,56 @@ public class GOparser {
 		for(int i=0;i<fields.length;i++)
 			if(fields[i].equals(gene_id))	{id=i; break;}
 		
+		String[] compareTo=ed.sortedGeneNames;
+		HashMap<String,String> compareHash=null;
+		//in the case the id in the expression data does not match with any of the ids on the GO mapping, we check if we have synonyms recorded for the expr. data
+		if(id==-1)
+			{
+			if(gene_id.equals("entrezgene") && ed.entrezgene!=null && ed.entrezgene.length>0)			
+				{
+				compareTo=ed.entrezgene;
+				for(int i=0;i<fields.length;i++)
+					if(fields[i].equals("ensembl_gene_id")  || fields[i].equals("external_gene_id"))	
+						{
+						id=i;
+						if(fields[i].equals("ensembl_gene_id"))
+							compareHash=invertedHash(ed.ensembl_gene_idHash);
+						if(fields[i].equals("external_gene_id"))
+							compareHash=invertedHash(ed.external_gene_idHash);
+						break;
+						}
+				}
+			if(gene_id.equals("ensembl_gene_id") && ed.ensembl_gene_id!=null && ed.ensembl_gene_id.length>0)			
+				{
+				compareTo=ed.ensembl_gene_id;
+				for(int i=0;i<fields.length;i++)
+					if(fields[i].equals("entrezgene") || fields[i].equals("external_gene_id"))	
+						{
+						id=i;
+						if(fields[i].equals("entrezgene"))
+							compareHash=invertedHash(ed.entrezgeneHash);
+						if(fields[i].equals("external_gene_id"))
+							compareHash=invertedHash(ed.external_gene_idHash);
+						break;
+						}
+				}
+			if(gene_id.equals("external_gene_id") && ed.external_gene_id!=null && ed.external_gene_id.length>0)			
+				{
+				compareTo=ed.external_gene_id;
+				compareHash=ed.external_gene_idHash;
+				for(int i=0;i<fields.length;i++)
+					if(fields[i].equals("entrezgene") || fields[i].equals("ensembl_gene_id"))
+						{
+						id=i;
+						if(fields[i].equals("entrezgene"))
+							compareHash=invertedHash(ed.entrezgeneHash);
+						if(fields[i].equals("ensembl_gene_id"))
+							compareHash=invertedHash(ed.ensembl_gene_idHash);
+						break;
+						}
+				}
+			
+			}
 		if(id==-1)
 			{
 			String s="Gene id '"+gene_id+"' is not supported for this GO map, please use one of these:\n";
@@ -222,22 +272,40 @@ public class GOparser {
 				{
 				if(annotations.get(fields[0])==null)
 					annotations.put(fields[0], new ArrayList<String>());
-				annotations.get(fields[0]).add(fields[id]);
+				if(compareHash!=null)
+					{
+					String gene=compareHash.get(fields[id]);
+					if(gene!=null)
+						annotations.get(fields[0]).add(gene);
+					}
+				else	annotations.get(fields[0]).add(fields[id]);
 				mappedGenes.add(fields[id].toLowerCase());
 				}
 			}
 		
+		
+		
 		//---
 		if(ed!=null)
 			{
-			int nomap=0;
+			int map=0;
 			
-			for(String mg:ed.sortedGeneNames)
+			/*for(String mg:ed.sortedGeneNames)
 				if(!mappedGenes.contains(mg))
+					nomap++;*/
+			
+			for(String mg:compareTo)
+				{
+				if(compareHash!=null)	
 					{
-					nomap++;
+					mg=compareHash.get(mg);
 					}
-			System.out.println("Genes in the expression data but not annotated: "+nomap);
+				if(mg!=null)
+					if(mappedGenes.contains(mg.toLowerCase()))
+						map++;
+				}
+				
+			System.out.println(map+"/"+ed.geneNames.length+" genes annotated on one or more terms ("+map*1.0/ed.geneNames.length+"%)");
 			}
 		//---
 		
@@ -249,6 +317,17 @@ public class GOparser {
 		return m;
 		}
 	
+	public static HashMap<String, String> invertedHash(HashMap<String, String> hm)
+		{
+		HashMap<String,String> ih=new HashMap<String, String>();
+		Iterator<String> it=hm.keySet().iterator();
+		while(it.hasNext())
+			{
+			String k=it.next(); 
+			ih.put(hm.get(k), k);
+			}
+		return ih;
+		}
 	/**
 	 * 
 	 * @param m
@@ -286,7 +365,7 @@ public class GOparser {
 				{
 				if(annotations.get(fields[termColumn])==null)
 					annotations.put(fields[termColumn], new ArrayList<String>());
-				annotations.get(fields[termColumn]).add(fields[id]);
+				annotations.get(fields[termColumn]).add(fields[id].toLowerCase());
 				mappedGenes.add(fields[id].toLowerCase());
 				
 				String[] synonyms=fields[synoColumn].split("\\|");
@@ -335,7 +414,8 @@ public class GOparser {
 		for(OntologyTerm ot:m.keySet())
 			{
 			ArrayList<String> annot=annotations.get(ot.id);
-			if(annot!=null && ot.geneIds.size()==0)	ot.geneIds.addAll(annot);	//add annotations only once
+			if(annot!=null && ot.geneIds.size()==0)	
+				ot.geneIds.addAll(annot);	//add annotations only once
 			
 			TreeMap<OntologyTerm,TreeMap> mc=m.get(ot);			//and keep recursing
 			if(mc!=null)	

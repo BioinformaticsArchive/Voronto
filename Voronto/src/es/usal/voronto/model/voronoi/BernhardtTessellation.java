@@ -167,7 +167,8 @@ public class BernhardtTessellation {
 			{
 			Cell c=buildCell(term, level);
 			if(c.weight==0)	return null; //no children and no annotations, so not shown
-			else			return c;
+			else			
+				return c;
 			}
 		else 
 			{
