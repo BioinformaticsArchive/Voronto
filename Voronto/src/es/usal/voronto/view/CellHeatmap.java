@@ -2,9 +2,11 @@ package es.usal.voronto.view;
 
 import java.awt.Color;
 import java.awt.Toolkit;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
 import ch.usi.inf.sape.hac.HierarchicalAgglomerativeClusterer;
@@ -18,8 +20,10 @@ import ch.usi.inf.sape.hac.experiment.DissimilarityMeasure;
 
 import es.usal.voronto.model.clustering.ExpressionSubset;
 import es.usal.voronto.model.voronoi.Cell;
+import es.usal.voronto.view.VoronoiVisualization.ImageFileFilter;
 import processing.core.PApplet;
 import processing.core.PFont;
+import processing.core.PGraphics;
 
 /**
  * Class to display static, simple heatmaps for the genes in a given term.
@@ -51,6 +55,7 @@ public class CellHeatmap extends PApplet
 	private static int titleHeight=22;
 	
 	int nameType=1;
+	private int scaleFactor=1;
 	
 	
 	public CellHeatmap(Cell c, PFont font, VoronoiVisualization v)
@@ -58,6 +63,7 @@ public class CellHeatmap extends PApplet
 		super();
 		vv=v;
 		cell=c;
+		scaleFactor=1;
 		if(cell.term.geneExs==null || cell.term.geneExs.size()==0)
 			{
 			System.err.println("No single gene expression for this term, please choose another one");
@@ -173,6 +179,41 @@ public class CellHeatmap extends PApplet
 				nameType=(nameType+1)%3;
 				redraw();
 				break;
+			case 'p':
+				JFileChooser selecFile = new JFileChooser();
+				selecFile.addChoosableFileFilter(vv.new ImageFileFilter());
+				
+				
+				if(vv.expData!=null)	
+					{
+					selecFile.setCurrentDirectory(new File(vv.expData.filePath));
+					selecFile.setSelectedFile(new File(cell.term.name.trim()+".png"));
+					}
+				else
+					selecFile.setSelectedFile(new File(cell.term.name.trim()+".png"));
+				
+				int returnval = selecFile.showSaveDialog(this);
+
+				if(returnval==JFileChooser.APPROVE_OPTION)
+					{
+					try{Thread.sleep(100);}catch(Exception e){}
+					
+					scaleFactor=3;
+					PGraphics hires = createGraphics(width*scaleFactor, height*scaleFactor, JAVA2D);
+					PGraphics ant=this.g;
+					//this.g=hires;
+					beginRecord(hires);
+					hires.scale(scaleFactor);
+					draw();
+					endRecord();
+					hires.save(selecFile.getSelectedFile().getAbsolutePath());
+					this.g=ant;
+					scaleFactor=1;
+					redraw();
+					
+					}
+				break;
+
 			default:
 				break;
 			}
@@ -213,9 +254,11 @@ public class CellHeatmap extends PApplet
 						fill(154);
 					
 					pushMatrix();
+					//g.scale(1);
+					//translate((float)(margin+marginRows+xDisplacement+(i+0.5)*size), marginCols);
 					translate((float)(margin+marginRows+xDisplacement+(i+0.5)*size), marginCols);
 					rotate((float)(1.5*PI));
-					
+					//g.scale(scaleFactor);
 					text(vv.expData.conditionNames[i],0, 0);
 					
 					popMatrix();

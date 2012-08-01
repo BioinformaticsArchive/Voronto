@@ -130,15 +130,41 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             	    {
             	    case 0:
             	    	if(md!=null)       	    		
-            	    		m=KOparser.parse("es/usal/voronto/data/kegg/ko00001.keg", md.organismKegg, KOparser.getPathways(md.organismKegg), false);
+            	    		m=KOparser.parse("es/usal/voronto/data/kegg/ko00001.keg", md.organismKegg, KOparser.getPathways(md.organismKegg), md, false);
             	    	else            	    		
-            	    		m=KOparser.parse("es/usal/voronto/data/kegg/ko00001.keg", null, null, false);
+            	    		m=KOparser.parse("es/usal/voronto/data/kegg/ko00001.keg", null, null, null, false);
             	    		//m=KOparser.parse("es/usal/voronto/data/kegg/ko00001.keg", null, null, true);
             		    
             		    m=m.get(new OntologyTerm("KEGG Orthology", ""));
             		    System.out.println("Time in getting the ontology: "+(System.currentTimeMillis()-time)/1000.0);
             		    type=VoronoiVisualization.KEGG;
             		    break;
+            	    case 1:
+            	    	m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", false);
+            	    	//m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", true);//for updates
+            	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
+            	    	m=m.get(new OntologyTerm("biological_process", "GO:0008150"));
+            	    	if(md!=null)	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.BP, md);
+            			
+            	    	type=VoronoiVisualization.BP;
+            			break;
+            	    case 2:
+            	    	m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "cellular_component", false);
+            	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
+            	    	m=m.get(new OntologyTerm("cellular_component", "GO:0005575"));
+            	    	if(md!=null)	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.CC, md);
+            			
+            	    	type=VoronoiVisualization.CC;
+            			break;	
+            	    case 3:
+            	    	m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "molecular_function", false);
+            	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
+            	    	m=m.get(new OntologyTerm("molecular_function", "GO:0003674"));
+            	    	if(md!=null)	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.MF, md);
+            			
+            	    	type=VoronoiVisualization.MF;
+            			break;	
+            		/*	
             	    case 1:
             	    	m=GOparser.parse("es/usal/voronto/data/go/goslim_generic.obo", "biological_process", false);
             	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
@@ -154,7 +180,8 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             	    	if(md!=null)	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.SLIMCC, md);
 	            		
             	    	type=VoronoiVisualization.SLIMCC;
-            		    break;
+            	    	
+            	    	break;
             	    case 3:
             	    	m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", false);
             	    	//m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", true);//for updates
@@ -163,7 +190,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             	    	if(md!=null)	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.BP, md);
             			
             	    	type=VoronoiVisualization.GO;
-            			break;
+            			break;*/
             		case 4:
             			if(md!=null)  			m=ReactomeParser.readSer("es/usal/voronto/data/reactome/"+md.organism+".ser");//es/usal/voronto/data/reactome/Mus musculus.ser
             			else       				m=ReactomeParser.readSer("es/usal/voronto/data/reactome/Homo sapiens.ser");
@@ -205,8 +232,8 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             	    }
                 time2=System.currentTimeMillis();
                 message="\t\tDONE\tin "+(time2-time)/1000.0+"s";
-                if(ontology==3)
-                	message+="\nNOTE: Full GO - BP is a very large ontology, only the two first levels will be visualized.\n\tIf you want to explore deeper, hover over a term and press 'enter'.";
+                if(ontology>0 && ontology<4)
+                	message+="\nNOTE: Full GO is a very large ontology, only the two first levels will be visualized.\n\tIf you want to explore deeper, hover over a term and press 'enter'.";
                 if(expressionButNoAnnotation)
                 	message+="\nNOTE: No annotations provided for custom ontology, expression data will be ignored\n";
                 	
@@ -219,11 +246,10 @@ public class Voronto extends JFrame implements PropertyChangeListener{
                 if(m!=null)
                 	{
                 	int maxDepth=3;			//KEGG
-                	if(ontology==3)
-                		{
-                		maxDepth=2;	//GO whole ontology is too crowded (14 levels and thousands of terms), keep in two /three levels (three might take too much time)
-                		}
-                	if(ontology==4 || ontology==5)	maxDepth=20;
+                	if(ontology==1 || ontology==2 || ontology==3)
+                        		maxDepth=2;	//GO ontologies now only curated, no IAE (much smaller)
+                	else if(ontology==4 || ontology==5)	maxDepth=20;
+                	else		maxDepth=20;
                 		
                 	time=System.currentTimeMillis();
                 	gv=null;

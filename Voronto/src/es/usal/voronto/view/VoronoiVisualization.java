@@ -12,6 +12,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
@@ -93,6 +94,7 @@ public class VoronoiVisualization extends PApplet{
 	public static final int SLIMCC=8;
 	public static final int BP=9;
 	public static final int CC=10;
+	public static final int MF=13;
 	public static final int REACTOME=11;
 	public static final int CUSTOM=12;
 	public static final int MEDIAN=0;
@@ -212,7 +214,10 @@ public class VoronoiVisualization extends PApplet{
 			else if(type==REACTOME)	ontologyName="REACTOME ("+this.levelThreshold+")";
 			else if(type==SLIMBP)	ontologyName="GO Slim - BP ("+this.levelThreshold+")";
 			else if(type==SLIMCC)	ontologyName="GO Slim - CC ("+this.levelThreshold+")";
-			else if(type==GO)	ontologyName="GO - BP ("+this.levelThreshold+")";
+			//else if(type==GO)	ontologyName="GO - BP ("+this.levelThreshold+")";
+			else if(type==BP)	ontologyName="GO - Biological Process ("+this.levelThreshold+")";
+			else if(type==CC)	ontologyName="GO - Cellular Component ("+this.levelThreshold+")";
+			else if(type==MF)	ontologyName="GO - Molecular Function ("+this.levelThreshold+")";
 			else			
 				{
 				if(customOntologyName!=null && customOntologyName.length()>0)
@@ -694,7 +699,7 @@ public void drawProfileLine(Cell c)
 
 public void drawProfilePlot(Cell c)
 	{
-	if(expData==null)	return;
+	if(expData==null || minHoveredCell==null)	return;
 	
 	int squareSize=12;
 	strokeWeight(1);
@@ -730,6 +735,8 @@ public void drawProfilePlot(Cell c)
 			{
 			double e;
 			ArrayList<Float> p=c.term.geneExs.get(it.next());
+			if(p==null || p.size()==0)
+				System.out.println("p is null");
 			if(whiteValue==MEAN)
 				{
 				e=squareSize*2-squareSize*2*(p.get(i)-expData.min)/(expData.max-expData.min);
@@ -1255,6 +1262,8 @@ public void mouseReleased() {
 								long t= System.currentTimeMillis();
 								String[] element_id_list=c.term.koExs.keySet().toArray(new String[0]);
 								
+								HashMap<String,String> geneMap=expData.invertedHash(expData.entrezgeneHash);
+								
 								ArrayList<String> fg=new ArrayList<String>();
 								ArrayList<String> bg=new ArrayList<String>();
 								ArrayList<Integer> els=new ArrayList<Integer>();
@@ -1269,8 +1278,16 @@ public void mouseReleased() {
 										
 										for(String g:p.getNames())
 											{
-											int pos=0;
-											if((pos=Arrays.binarySearch(element_id_list, g.replace("ko:", "")))>=0)
+											int pos=-1;
+											if(!expData.chip.equals("entrezgene"))
+												{//translation in the case of non-native matrix ids
+												String syn=geneMap.get(g.replace("ko:", ""));
+												if(syn!=null)
+													pos=Arrays.binarySearch(element_id_list, syn);
+												}
+											else
+												pos=Arrays.binarySearch(element_id_list, g.replace("ko:", ""));	
+											if(pos>=0)
 												{
 												ArrayList<Float> exs=((ArrayList<Float>)c.term.koExs.get(element_id_list[pos]));
 												if(exs!=null && exs.size()==this.expData.getNumConditions())
@@ -1309,6 +1326,7 @@ public void mouseReleased() {
 									}//for each path element
 								int [] iels=new int[els.size()];
 								for(int i=0;i<els.size();i++) iels[i]=els.get(i);
+								
 								System.out.println("Time in mapping pathway elements: "+((System.currentTimeMillis()-t)/1000.0));
 								if(els.size()==0)
 									{
@@ -1325,12 +1343,14 @@ public void mouseReleased() {
 							else	//specific species pathway
 								{
 								long t= System.currentTimeMillis();
-								String[] element_id_list=c.term.geneExs.keySet().toArray(new String[0]);//term.geneExs misses cap dependent things (like SPBC1683.06c)
+								String[] element_id_list=c.term.geneExs.keySet().toArray(new String[0]);
+								
+								HashMap<String,String> geneMap=expData.invertedHash(expData.entrezgeneHash);
 								
 								ArrayList<String> fg=new ArrayList<String>();
 								ArrayList<String> bg=new ArrayList<String>();
 								ArrayList<Integer> els=new ArrayList<Integer>();
-								//TODO: Hay genes que se encuentran en elementos visuales del pathway pero no est‡n en term.geneExs!! 
+							
 								for(PathwayElement p:ps)
 									{
 								//	System.out.println(p.getType()+"\t"+p.getElement_id());
@@ -1342,10 +1362,22 @@ public void mouseReleased() {
 										for(String g:p.getNames())
 											{
 											if(g.indexOf(":")>=0)	g=g.substring(g.indexOf(":")+1).toLowerCase();
-											int pos=0;
-											if((pos=Arrays.binarySearch(element_id_list, g))>=0)
+											int pos=-1;
+											if(!expData.chip.equals("entrezgene"))
+												{
+												String syn=geneMap.get(g.replace("ko:", ""));
+												if(syn!=null)
+													pos=Arrays.binarySearch(element_id_list, syn);
+												}
+											else
+												pos=Arrays.binarySearch(element_id_list, g.replace("ko:", ""));	
+											
+											//if((pos=Arrays.binarySearch(element_id_list, g))>=0)
+											//if((pos=Arrays.binarySearch(element_id_listENTREZ, g))>=0)
+											if(pos>=0)
 												{
 												ArrayList<Float> exs=((ArrayList<Float>)c.term.geneExs.get(element_id_list[pos]));
+												//TODO: translation goes here (or above translation of element_id_list)
 												if(exs!=null && exs.size()==this.expData.getNumConditions())
 													{
 													ex+=exs.get(this.selectedCol);
@@ -1413,7 +1445,7 @@ public void mouseReleased() {
 				setCursor(normalCursor);
 				
 				}//if KEGG
-			else if(type==GO)
+			else if(type==GO || type==BP ||type==CC || type==MF)
 				{
 				for(Cell c:hoveredCells)
 					{
@@ -1663,26 +1695,20 @@ public void keyReleased()
 			if(returnval==JFileChooser.APPROVE_OPTION)
 				{
 				saving=true;
-				try{Thread.sleep(1000);}catch(Exception e){}
-				/*if(selecFile.getFileFilter().equals(new ImageFileFilter()))
-					{
-					redraw();
-					save(selecFile.getSelectedFile().getAbsolutePath());
-					}
-				else*///Saving hi-res
-					{
-					int scaleFactor=3;
-					PGraphics hires = createGraphics(width*scaleFactor, height*scaleFactor, JAVA2D);
-					PGraphics ant=this.g;
-					this.g=hires;
-					beginRecord(hires);
-					hires.scale(scaleFactor);
-					draw();
-					endRecord();
-					hires.save(selecFile.getSelectedFile().getAbsolutePath());
-					this.g=ant;
-					}
+				try{Thread.sleep(100);}catch(Exception e){}
+				
+				int scaleFactor=3;
+				PGraphics hires = createGraphics(width*scaleFactor, height*scaleFactor, JAVA2D);
+				PGraphics ant=this.g;
+				this.g=hires;
+				beginRecord(hires);
+				hires.scale(scaleFactor);
+				draw();
+				endRecord();
+				hires.save(selecFile.getSelectedFile().getAbsolutePath());
+				this.g=ant;
 				saving=false;
+				
 				redraw();
 				}
 			break;
@@ -1756,21 +1782,26 @@ public void exit()
 	//System.out.println("Exiting...");
 	return;//i don't want esc to close the program
 	}
+
 /**
  * Computes a new tesselleation with cell as root node
  * @param cell
  */
 public void tessellate(OntologyTerm term) throws Exception
 	{
-	/*System.out.println(Runtime.getRuntime().freeMemory()+" free memory");
-	System.out.println(Runtime.getRuntime().maxMemory()+" max memory");
-	System.out.println(Runtime.getRuntime().totalMemory()+" total memory");
-	System.gc();*/
-	
 	boolean translate=false;
 	if(tessellations.get(term)==null)	//search for the tessellation for this term as root
 		{
-		v=new BernhardtTessellation(getMap(map,term), expData, width, height-100, type, this.maxDepth);
+		try
+			{v=new BernhardtTessellation(getMap(map, term), expData, width, height-100, type, this.maxDepth);}
+		catch(Exception e)
+			{
+			if(e.getMessage().startsWith("No mapped genes"))
+				JOptionPane.showMessageDialog(null, "This term has "+getMap(map, term).size()+" subterms, but with no annotated genes, tessellation will not be computed.", "Warning", JOptionPane.WARNING_MESSAGE);
+			else
+				JOptionPane.showMessageDialog(null, "An error occurred during tessellation.", "Warning", JOptionPane.WARNING_MESSAGE);
+			return;
+			}
 		tessellations.put(term, v);
 	 	translate=true;
 		}
@@ -2086,7 +2117,7 @@ public void recursiveExpressionNormalization(Cell cell, int column)
 
 
 
-private class ImageFileFilter extends FileFilter {
+public class ImageFileFilter extends FileFilter {
 
 	 /**
      * Returns the extension of a file (the three letters after the dot)

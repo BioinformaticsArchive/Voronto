@@ -153,7 +153,9 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 			{
 				ComboBoxModel jComboBox1Model = 
 						new DefaultComboBoxModel(
-								new String[] { "KEGG", "GO slim BP","GO slim CC", "GO full BP", "REACTOME", "Custom..." });
+								//		new String[] { "KEGG", "GO slim BP","GO slim CC", "GO full BP", "REACTOME", "Custom..." });
+										new String[] { "KEGG", "GO BP","GO CC", "GO MF", "REACTOME", "Custom..." });
+								
 				jComboBox1 = new JComboBox();
 				this.add(jComboBox1);
 				jComboBox1.setModel(jComboBox1Model);

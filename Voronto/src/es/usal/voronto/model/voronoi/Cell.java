@@ -297,7 +297,7 @@ public class Cell implements Cloneable {
 		for(String id:term.geneIds)
 			{
 			if(Arrays.binarySearch(md.sortedGeneNames, id.toLowerCase())>=0)
-				term.geneExs.put(id, new ArrayList<Float>());
+				term.geneExs.put(id.toLowerCase(), new ArrayList<Float>());
 			}
 	
 		float[] e=new float[md.getNumConditions()];
@@ -309,7 +309,10 @@ public class Cell implements Cloneable {
 			while(it.hasNext())			//NOTE: This loop can be slow (>1s)
 				{
 				String i=it.next();
-				double[] temp=md.getExpressionProfile(md.getGeneId(i));
+				int id=md.getGeneId(i);
+				if(id==-1)
+					System.out.println("check");
+				double[] temp=md.getExpressionProfile(id);
 				
 				ArrayList<Float> profile=term.geneExs.get(i);
 				for(int k=0;k<md.getNumConditions();k++)	

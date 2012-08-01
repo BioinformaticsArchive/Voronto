@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.StringTokenizer;
@@ -431,21 +432,21 @@ public class ExpressionData
 	public int getGeneId(String geneName)
 		{
 		int ret=-1;
-		ArrayList<Integer> l=geneNamesHash.get(geneName);
+		ArrayList<Integer> l=geneNamesHash.get(geneName.toLowerCase());
 		if(l!=null)	ret=l.get(0);
 		return ret;
 		}
 	
 	public ArrayList<Integer> getGeneIds(String geneName)
 		{
-		return geneNamesHash.get(geneName);
+		return geneNamesHash.get(geneName.toLowerCase());
 		}
 	
 	public ArrayList<Integer> getGeneIds(String[] geneNames)
 		{
 		ArrayList<Integer> ret=new ArrayList<Integer>();
 		for(String g:geneNames)
-			ret.addAll(geneNamesHash.get(g));
+			ret.addAll(geneNamesHash.get(g.toLowerCase()));
 		return ret;
 		}
 	
@@ -600,6 +601,18 @@ public class ExpressionData
 		return ret;
 		}
 	
+	public HashMap<String, String> invertedHash(HashMap<String, String> hm)
+		{
+		HashMap<String,String> ih=new HashMap<String, String>();
+		Iterator<String> it=hm.keySet().iterator();
+		while(it.hasNext())
+			{
+			String k=it.next(); 
+			ih.put(hm.get(k), k);
+			}
+		return ih;
+		}
+
 
 	/**
 	 * Returns the number of genes in the sparse matrix
@@ -879,16 +892,16 @@ public class ExpressionData
 					}
 				st=new StringTokenizer(cad,"\t");//El delimitador en Syntren es un tab.
 				geneNames[i]=st.nextToken().trim();
-				if(geneNamesHash.get(geneNames[i])==null)	
+				if(geneNamesHash.get(geneNames[i].toLowerCase())==null)	
 					{
 					ArrayList<Integer> l=new ArrayList<Integer>();
 					l.add(i);
-					geneNamesHash.put(geneNames[i],l);
+					geneNamesHash.put(geneNames[i].toLowerCase(),l);
 					}
 				else	
-					geneNamesHash.get(geneNames[i]).add(i);
+					geneNamesHash.get(geneNames[i].toLowerCase()).add(i);
 				geneKOIDs[i]=organismKegg+":"+geneNames[i];//TODO: this might not be true for all kinds of ids and species
-				koidList.add(geneKOIDs[i].toLowerCase());
+				koidList.add(geneKOIDs[i].toLowerCase());//TODO: must be changed not to geneNames but to the corresponding id for KEGG/species
 				
 				try{
 					for(int j=0;j<numConditions;j++)
@@ -958,6 +971,23 @@ private void generateSynonyms()
 				//System.out.println("Gene "+pos+" with name "+sortedGeneNames[pos]+" is "+entrezgene[pos]+"\t"+ensembl_gene_id[pos]+"\t"+external_gene_id[pos]);
 				}
 			}
+		
+/*
+		HashMap<String,String> geneMap=null;
+		if(organismKegg.equals("sce"))	{if(!chip.equals("ensembl_gene_id") && ensembl_gene_idHash!=null)	geneMap=ensembl_gene_idHash;}
+    	else							{if(!chip.equals("entrezgene") && entrezgeneHash!=null)	geneMap=entrezgeneHash;}
+		
+		if(geneMap!=null)
+			{
+			koidList.clear();
+	    	for(int i=0;i<geneNames.length;i++)
+				{
+				//geneKOIDs[i]=organismKegg+":"+geneNames[i];//TODO: this might not be true for all kinds of ids and species
+				//koidList.add(geneKOIDs[i].toLowerCase());//TODO: must be changed not to geneNames but to the corresponding id for KEGG/species
+	    		geneKOIDs[i]=organismKegg+":"+geneMap.get(geneNames[i].toLowerCase());//TODO: this might not be true for all kinds of ids and species
+				koidList.add(geneKOIDs[i].toLowerCase());//TODO: must be changed not to geneNames but to the corresponding id for KEGG/species
+				}
+			}*/
 		//System.out.println(cont+" genes out of "+geneNames.length+" have recorded synonyms");
 		}
 	catch(IOException ioe)

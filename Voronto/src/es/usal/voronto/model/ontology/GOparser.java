@@ -34,15 +34,19 @@ public class GOparser {
 	
 	public static void main(String[] args)
 		{
-		File dir=new File("/Users/rodri/Desktop/goa/nuevos");
+		File dir=new File("/Users/rodri/Desktop/goa/goa");
 		for(File f:dir.listFiles())
 			{
 			String s=f.getAbsolutePath();
 			if(s.contains("gene_association.goa"))
-				GOparser.map(s, "/Users/rodri/desktop/goa/mini/gobiological_process-"+s.substring(s.indexOf(".goa")+5)+".map");
+				GOparser.map(s, "/Users/rodri/desktop/goa/mini/go-"+convert2(s.substring(s.indexOf(".goa")+5))+"_gene_ensembl.map");
 			}
 		//GOparser.map("/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/data/calbicans/annotations/gene_association.cgd", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/gobiological_process-calbicans_gene_ensembl.map");
-		}
+		
+		//GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", true);
+		//GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "cellular_component", true);
+		//GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "molecular_function", true);
+    	}
 	
 	private static List<OntologyTerm> lot;
 
@@ -57,19 +61,20 @@ public class GOparser {
 		{
 		TreeMap<OntologyTerm, TreeMap> map=new TreeMap<OntologyTerm, TreeMap>();
 		String serName=null;
-		if(path.contains("slim"))	serName="goSLIM";
-		else						serName="go";
+	//	if(path.contains("slim"))	serName="goSLIM";
+	//	else						serName="go";
 		
-		String goTermName="terms";
-		if(path.contains("slim"))	goTermName="goSLIM"+ontology+".txt";
-		else						goTermName="go"+ontology+".txt";
+	//	String goTermName="terms";
+	//	if(path.contains("slim"))	goTermName="goSLIM"+ontology+".txt";
+	//	else						goTermName="go"+ontology+".txt";
 		
 		if(!redo)
 			try
 			   	{
 				System.out.println("Reading GO serialized map");
 				long time=System.currentTimeMillis();
-				InputStream is=Thread.currentThread().getContextClassLoader().getResourceAsStream("es/usal/voronto/data/go/"+serName+""+ontology+".ser");
+				//InputStream is=Thread.currentThread().getContextClassLoader().getResourceAsStream("es/usal/voronto/data/go/"+serName+""+ontology+".ser");
+				InputStream is=Thread.currentThread().getContextClassLoader().getResourceAsStream("es/usal/voronto/data/go/go-"+ontology+".ser");
 				ObjectInputStream oin = new ObjectInputStream(is);
 				map = (TreeMap<OntologyTerm, TreeMap>)oin.readObject();
 			    oin.close();
@@ -83,7 +88,8 @@ public class GOparser {
 			{
 			try{
 				//B3) Serialize the mapping for optimization (still it takes time to read after, better divide by species
-				FileOutputStream fos = new FileOutputStream(serName+ontology+".ser");
+				//FileOutputStream fos = new FileOutputStream(serName+ontology+".ser");
+				FileOutputStream fos = new FileOutputStream("go-"+ontology+".ser");
 				ObjectOutputStream out = new ObjectOutputStream(fos);
 				out.writeObject(map);
 				out.close();
@@ -118,6 +124,7 @@ public class GOparser {
 		try {
 			in = new BufferedReader(new FileReader(gafFilePath));
 			out = new BufferedWriter(new FileWriter(mapFilePath));
+		//	out.write("go_id\texternal_gene_id\tevidence_id");	out.newLine();
 			out.write("go_id\texternal_gene_id");	out.newLine();
 			String cad=null;
 			while((cad=in.readLine())!=null)
@@ -126,10 +133,31 @@ public class GOparser {
 					{
 					String[] fields=cad.split("\t");
 					String go=fields[4];
+					ArrayList<String> orfs=new ArrayList<String>();
+					orfs.add(fields[2]);
+					
+					/*if(fields[10]!=null && fields.length>0)
+						{
+						String[] syn=fields[10].split("\\|");//This can be non existing cause it is not mandatory, should include fields[2]
+						if(syn!=null && syn.length>0)
+							for(String orf:syn)
+								{
+								if(orf.indexOf("_")>0)	orf=orf.substring(0, orf.indexOf("_"));
+								if(!orfs.contains(orf))	orfs.add(orf);
+								}
+						}*///too large, synonyms via the synonym data
+					
+					String evidence=fields[6];
+					for(String orf:orfs)
+					//	if(!evidence.equals("IEA") && !evidence.equals("NR"))
+							//{out.write(go+"\t"+orf+"\t"+evidence); out.newLine();}
+							{out.write(go+"\t"+orf); out.newLine();}
 					//String orf=fields[10];//This can be non existing cause it is not mandatory, should include fields[2]
 					//if(orf.indexOf("|")>0)	orf=orf.substring(0, orf.indexOf("|"));	//these are several synonyms... might be interesting to get all of them
-					String orf=fields[2];
-					out.write(go+"\t"+orf); out.newLine();
+					
+					
+					//String orf=fields[2];
+					//out.write(go+"\t"+orf); out.newLine();
 					}
 				}
 			out.close();
@@ -183,8 +211,11 @@ public class GOparser {
 			case VoronoiVisualization.SLIMCC:
 				ontology="goSLIMcellular_component";
 				break;
-			case VoronoiVisualization.BP:
-				ontology="gobiological_process";
+			case VoronoiVisualization.BP://TODO: change name to generic go_
+			case VoronoiVisualization.CC:
+			case VoronoiVisualization.MF:
+					//ontology="gobiological_process";
+					ontology="go";
 				break;
 			}
 		
@@ -207,6 +238,7 @@ public class GOparser {
 		String[] compareTo=ed.sortedGeneNames;
 		HashMap<String,String> compareHash=null;
 		//in the case the id in the expression data does not match with any of the ids on the GO mapping, we check if we have synonyms recorded for the expr. data
+		//BETA TESTING
 		if(id==-1)
 			{
 			if(gene_id.equals("entrezgene") && ed.entrezgene!=null && ed.entrezgene.length>0)			
@@ -217,9 +249,9 @@ public class GOparser {
 						{
 						id=i;
 						if(fields[i].equals("ensembl_gene_id"))
-							compareHash=invertedHash(ed.ensembl_gene_idHash);
+							compareHash=ed.invertedHash(ed.ensembl_gene_idHash);
 						if(fields[i].equals("external_gene_id"))
-							compareHash=invertedHash(ed.external_gene_idHash);
+							compareHash=ed.invertedHash(ed.external_gene_idHash);
 						break;
 						}
 				}
@@ -231,9 +263,9 @@ public class GOparser {
 						{
 						id=i;
 						if(fields[i].equals("entrezgene"))
-							compareHash=invertedHash(ed.entrezgeneHash);
+							compareHash=ed.invertedHash(ed.entrezgeneHash);
 						if(fields[i].equals("external_gene_id"))
-							compareHash=invertedHash(ed.external_gene_idHash);
+							compareHash=ed.invertedHash(ed.external_gene_idHash);
 						break;
 						}
 				}
@@ -246,9 +278,9 @@ public class GOparser {
 						{
 						id=i;
 						if(fields[i].equals("entrezgene"))
-							compareHash=invertedHash(ed.entrezgeneHash);
+							compareHash=ed.invertedHash(ed.entrezgeneHash);
 						if(fields[i].equals("ensembl_gene_id"))
-							compareHash=invertedHash(ed.ensembl_gene_idHash);
+							compareHash=ed.invertedHash(ed.ensembl_gene_idHash);
 						break;
 						}
 				}
@@ -294,11 +326,13 @@ public class GOparser {
 				if(!mappedGenes.contains(mg))
 					nomap++;*/
 			
+			HashMap<String,String> compareHashI=null;
+			if(compareHash!=null)	compareHashI=ed.invertedHash(compareHash);
 			for(String mg:compareTo)
 				{
-				if(compareHash!=null)	
+				if(compareHashI!=null)	
 					{
-					mg=compareHash.get(mg);
+					mg=compareHashI.get(mg.toLowerCase());
 					}
 				if(mg!=null)
 					if(mappedGenes.contains(mg.toLowerCase()))
@@ -317,17 +351,6 @@ public class GOparser {
 		return m;
 		}
 	
-	public static HashMap<String, String> invertedHash(HashMap<String, String> hm)
-		{
-		HashMap<String,String> ih=new HashMap<String, String>();
-		Iterator<String> it=hm.keySet().iterator();
-		while(it.hasNext())
-			{
-			String k=it.next(); 
-			ih.put(hm.get(k), k);
-			}
-		return ih;
-		}
 	/**
 	 * 
 	 * @param m
@@ -434,10 +457,28 @@ public class GOparser {
 	 * @return
 	 */
 	public static String convert(String species)
+	{
+	return species.trim().toLowerCase().charAt(0)+species.substring(species.indexOf(" ")+1);
+	}
+	public static String convert2(String species)
 		{
-		return species.trim().toLowerCase().charAt(0)+species.substring(species.indexOf(" ")+1);
+		if(species.equals("arabidopsis"))	return "athaliana";
+		if(species.equals("chicken"))	return "ggallus";
+		if(species.equals("cow"))	return "btaurus";
+		if(species.equals("dicty"))	return "ddiscoideum";
+		if(species.equals("dog"))	return "cfamiliaris";
+		if(species.equals("fly"))	return "dmelanogaster";
+		if(species.equals("human"))	return "hsapiens";
+		if(species.equals("mouse"))	return "mmusculus";
+		if(species.equals("pig"))	return "sscrofa";
+		if(species.equals("rat"))	return "rnorvegicus";
+		if(species.equals("worm"))	return "celegans";
+		if(species.equals("yeast"))	return "scerevisiae";
+		if(species.equals("zebrafish"))	return "drerio";
+			
+		return species;
 		}
-	
+
 	
 	/**
 	 * RESTful access, get annotations for a given term

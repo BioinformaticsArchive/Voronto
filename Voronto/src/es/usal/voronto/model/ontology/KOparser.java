@@ -12,12 +12,15 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
 import keggapi.*;
 import javax.xml.rpc.ServiceException;
+
+import es.usal.voronto.model.expression.ExpressionData;
 
 /**
  * Parsers KEGG orthology file into a Map
@@ -47,10 +50,14 @@ public class KOparser {
 	 * 
 	 * @param path KEGG hierarchy serialized file
 	 * @param organism KEGG organism, so it selects only entries for that organism (e.g. if Saccharomyces cerevisiae --> sce)
+	 * @param pathIDs IDs of the paths that must be included in the ontology (if null, all of them will be included)
+	 * @param ed  ExpressionData which will determine selected gene annotations and gene id (it can be 'entrezgene', 'ensembl_gene_id' or 'external_gene_id')
+	 * 					By default is null, and gene annotations will be the ones coming directly from KEGG (usually entrezgene, but not always)
 	 * @param update If true, it uses programmatic remaps elements and updates the serialized file (takes time)
+	 * 
 	 * @return
 	 */
-	public static TreeMap<OntologyTerm, TreeMap> parse(String path, String organism, ArrayList<String> pathIDs, boolean update)
+	public static TreeMap<OntologyTerm, TreeMap> parse(String path, String organism, ArrayList<String> pathIDs, ExpressionData ed, boolean update)
 	{
 	TreeMap<OntologyTerm, TreeMap> map=new TreeMap<OntologyTerm, TreeMap>();
 	TreeMap<String, ArrayList<String>> koterms=new TreeMap<String, ArrayList<String>>();//mapping of KO terms to gene ids
@@ -58,6 +65,7 @@ public class KOparser {
 	FileInputStream fis = null;
 	ObjectInputStream oin = null;
 	boolean addElements=true;
+	HashMap<String, String> geneMap=null;
 	
 	try
 	   {
@@ -67,13 +75,17 @@ public class KOparser {
         koterms = (TreeMap<String, ArrayList<String>>)oin.readObject();
 	    oin.close();
 	    System.out.println("koterms read");
+	    if(ed!=null)
+	    	{
+	    	if(ed.organismKegg.equals("sce"))	{if(!ed.chip.equals("ensembl_gene_id") && ed.ensembl_gene_idHash!=null)	geneMap=ed.invertedHash(ed.ensembl_gene_idHash);}
+	    	else								{if(!ed.chip.equals("entrezgene") && ed.entrezgeneHash!=null)	geneMap=ed.invertedHash(ed.entrezgeneHash);}
+	    	}
 	    }catch(Exception e){e.printStackTrace();}
 	
 	BufferedReader in;
 	int numPaths=0;
 	
 	try {
-		//int contForWriting=0;
 		in = new BufferedReader(new InputStreamReader(Thread.currentThread().getContextClassLoader().getResourceAsStream(path)));//para applet/jws
 		String s=null;
 		String name=null;
@@ -138,11 +150,7 @@ public class KOparser {
 					
 					ArrayList<String> gids=new ArrayList<String>();
 					if(koterms.containsKey("ko:"+id))
-						{
-						gids=koterms.get("ko:"+id);
-					//	System.out.println("\t"+name+": already there: "+gids.size()+" results");
-						}
-					
+						gids=koterms.get("ko:"+id);	
 					//NOTE: only for retrieving KO info, not for applet
 					else
 						{
@@ -155,15 +163,18 @@ public class KOparser {
 								gids.add(r.getEntry_id());
 							System.out.println(name+": found "+results.length+" results");
 							koterms.put("ko:"+id, gids);
-							
-							/*System.out.println("Writing to "+"komapping"+contForWriting+".ser");	//--->probably unnecessary (the final writing should be enough)
-							//Serialize the mapping for optimization
-							FileOutputStream fos = new FileOutputStream("komapping"+contForWriting+".ser");
-							ObjectOutputStream out = new ObjectOutputStream(fos);
-							out.writeObject(koterms);
-							out.close();*/
 							}
 						}
+					
+					//TRANSLATION to gene ids on the expression data
+					if(geneMap!=null)
+						{
+						ArrayList<String> gids2=new ArrayList<String>();
+						for(String gid:gids)
+							gids2.add(gid.substring(0, gid.indexOf(":"))+":"+geneMap.get(gid.substring(gid.indexOf(":")+1).toLowerCase()));
+						gids=gids2;
+						}
+					
 					
 					//This should be something recursive on deeper ontologies
 					Iterator<OntologyTerm> it=map.keySet().iterator();

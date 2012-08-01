@@ -132,6 +132,9 @@ public class BernhardtTessellation {
 				c.numLeaves=c.getNumMatchedKOTerms(expData);
 				break;
 			case VoronoiVisualization.GO:
+			case VoronoiVisualization.BP:
+			case VoronoiVisualization.CC:
+			case VoronoiVisualization.MF:
 			case VoronoiVisualization.SLIMBP:
 			case VoronoiVisualization.SLIMCC:
 				c.numLeaves=c.getNumMatchedGOTerms(expData);
