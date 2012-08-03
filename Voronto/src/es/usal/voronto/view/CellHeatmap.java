@@ -158,12 +158,12 @@ public class CellHeatmap extends PApplet
 		if(mouseEvent.getClickCount()==2 && hoveredGene!=null)
 			{
 			try{
-			//String entrezLabel=vv.expData.getSynonym(hoveredGene, vv.expData.ENTREZ);
+			String entrezLabel=vv.expData.getSynonym(hoveredGene, vv.expData.ENTREZ);
 				
 			if(vv.expData.chip.equals("entrezgene"))
 				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+hoveredGene));
-			//else if(entrezLabel!=null)
-			//	java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+entrezLabel));
+			else if(entrezLabel!=null)
+				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+entrezLabel));
 			else
 				java.awt.Desktop.getDesktop().browse(java.net.URI.create("http://www.ncbi.nlm.nih.gov/gene?term="+hoveredGene.toUpperCase()+"%20AND%20"+vv.expData.organism.replace(" ", "%20")+"%5BOrganism%5D"));
 			}catch(IOException e){System.out.println("Error: cannot show webpage: "+e.getMessage()); e.printStackTrace();}
@@ -183,7 +183,6 @@ public class CellHeatmap extends PApplet
 				JFileChooser selecFile = new JFileChooser();
 				selecFile.addChoosableFileFilter(vv.new ImageFileFilter());
 				
-				
 				if(vv.expData!=null)	
 					{
 					selecFile.setCurrentDirectory(new File(vv.expData.filePath));
@@ -200,14 +199,11 @@ public class CellHeatmap extends PApplet
 					
 					scaleFactor=3;
 					PGraphics hires = createGraphics(width*scaleFactor, height*scaleFactor, JAVA2D);
-					PGraphics ant=this.g;
-					//this.g=hires;
 					beginRecord(hires);
 					hires.scale(scaleFactor);
 					draw();
 					endRecord();
 					hires.save(selecFile.getSelectedFile().getAbsolutePath());
-					this.g=ant;
 					scaleFactor=1;
 					redraw();
 					
@@ -254,11 +250,8 @@ public class CellHeatmap extends PApplet
 						fill(154);
 					
 					pushMatrix();
-					//g.scale(1);
-					//translate((float)(margin+marginRows+xDisplacement+(i+0.5)*size), marginCols);
 					translate((float)(margin+marginRows+xDisplacement+(i+0.5)*size), marginCols);
 					rotate((float)(1.5*PI));
-					//g.scale(scaleFactor);
 					text(vv.expData.conditionNames[i],0, 0);
 					
 					popMatrix();

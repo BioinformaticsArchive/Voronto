@@ -191,12 +191,12 @@ public class GOparser {
 	
 	
 	/**
-	 * Returns the map m, but with its ontology terms mapped to gene ids on the corresponding format (entrezgene, external_gene_id, ensembl_gene_id or hgnc_symbol)
+	 * Returns the map m, but with its ontology terms mapped to gene ids on the corresponding format (entrezgene, external_gene_id or ensembl_gene_id)
 	 * This method reads annotation files produced by biomaRt via R (see script es.usal.voronto.rcode.retrieveGOannotations.R)
 	 * These files are pregenerated and updated periodically (set and automate period... six months?)
 	 * @param m			GO hierarchy to annotate
 	 * @param species	full standard species name (e.g. Homo sapiens, but not H sapiens, hsa or human)
-	 * @param gene_id	either entrezgene, external_gene_id, ensembl_gene_id or hgnc_symbol (standard id names from biomaRt)
+	 * @param gene_id	either entrezgene, external_gene_id, ensembl_gene_id or (standard id names from biomaRt)
 	 * TODO: either generate a file for each GO type (Slim or not; BP/MF/CC) or big annotation files with everything and select depending if they appear in m
 	 * @return
 	 */

@@ -10,6 +10,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.TreeMap;
 
@@ -29,6 +30,7 @@ import org.biopax.paxtools.model.level3.Process;
 
 
 import edu.emory.mathcs.backport.java.util.Arrays;
+import es.usal.voronto.model.expression.ExpressionData;
 
 public class ReactomeParser 
 	{
@@ -68,10 +70,12 @@ public class ReactomeParser
 	
 	/**
 	 * Reads and return the TreeMap in a serialized file with BioPAXparser.parse
-	 * @param file
+	 * @param file Serialized file with Reactome hierarchy and annotations for a given species
+	 * @param ed Expression data. Required if expression data ids are not entrezgenes, to make
+	 * 				a proper synonym mapping
 	 * @return
 	 */
-	public static TreeMap<OntologyTerm, TreeMap> readSer(String file) throws Exception
+	public static TreeMap<OntologyTerm, TreeMap> readSer(String file, ExpressionData ed) throws Exception
 		{
 		TreeMap<OntologyTerm, TreeMap> map=null;
 		try
@@ -91,8 +95,33 @@ public class ReactomeParser
 		    	if(map.get(ot)==null || map.get(ot).isEmpty())
 		    		map.remove(ot);
 		    	}
+		    if(ed!=null && !ed.chip.equals("entrezgene") && ed.entrezgeneHash!=null)
+		    	{
+		    	//proceed with the translation of annotations
+		    	recursiveTranslation(map, ed.invertedHash(ed.entrezgeneHash));
+		    	}
 		
 		return map;	
+		}
+	
+	private static void recursiveTranslation(TreeMap<OntologyTerm, TreeMap> m, HashMap<String,String> geneMap)
+		{
+		if(m==null)	return;
+		for(OntologyTerm ot:m.keySet())
+			{
+			HashSet<String> annot=ot.geneIds;
+			HashSet<String> annot2=new HashSet();
+				
+			for(String s:annot)
+				{
+				String st=geneMap.get(s);
+				if(st!=null)	annot2.add(st);
+				}
+			ot.geneIds.clear();
+			ot.geneIds.addAll(annot2);
+			recursiveTranslation(m.get(ot), geneMap);
+			}
+		return;
 		}
 	/**
 	 * Reads OWL file, saves the hierarchy on a TreeMap, then annotates the hierarchy with the information in a map file with the same name,

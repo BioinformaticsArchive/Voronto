@@ -192,8 +192,8 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             	    	type=VoronoiVisualization.GO;
             			break;*/
             		case 4:
-            			if(md!=null)  			m=ReactomeParser.readSer("es/usal/voronto/data/reactome/"+md.organism+".ser");//es/usal/voronto/data/reactome/Mus musculus.ser
-            			else       				m=ReactomeParser.readSer("es/usal/voronto/data/reactome/Homo sapiens.ser");
+            			if(md!=null)  			m=ReactomeParser.readSer("es/usal/voronto/data/reactome/"+md.organism+".ser", md);
+            			else       				m=ReactomeParser.readSer("es/usal/voronto/data/reactome/Homo sapiens.ser", null);
             		    type=VoronoiVisualization.REACTOME;
             		    break;
             		case 5:
