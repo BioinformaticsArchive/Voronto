@@ -557,11 +557,65 @@ public void drawDetailedProfile(Cell c)
  * @param col
  * @return
  */
-public Color getColor(ArrayList<Float> exs, int col)
+public Color getColor(float ex, int col)
 	{
 	setScale(expData, col);
-	if(exs==null)	return null;
 	int h=-1;
+	if(whiteValue==VoronoiVisualization.MEAN)	//raw coloring
+		{
+		switch(COLOR_MODE)
+			{
+			case VoronoiVisualization.COLOR_EXPRESSION:
+				if(ex>avgExp)
+					{
+					h=(int)Math.round(255-((ex-avgExp)/(maxExp-avgExp)*255));
+					return new Color(255,h,h);
+					}
+				else
+					{
+					h=(int)Math.round(255-(Math.abs(ex-avgExp)/Math.abs(minExp-avgExp))*255);
+					return new Color(h,h,255);
+					}
+			case VoronoiVisualization.COLOR_DEVIATION:
+				h=(int)Math.round(255-(Math.abs(ex-avgExp)/Math.max(Math.abs(avgExp-minExp), Math.abs(avgExp-maxExp)))*255);
+				return new Color(h,255,h);
+			case VoronoiVisualization.COLOR_INTERNAL_DEVIATION://TODO: testing
+				return null;
+			}
+		}
+	else	//quantile coloring --> note: color scaling 
+		{
+		switch(COLOR_MODE)
+			{
+			case VoronoiVisualization.COLOR_EXPRESSION:
+				int q=expData.getQuantile(ex);
+				if(q>=50)
+					{
+					h=(int)Math.round(255-((q-50.0)/50)*255);
+					return new Color(255,h,h);
+					}
+				else
+					{
+					h=(int)Math.round(255-((50.0-q)/50)*255);
+					return new Color(h,h,255);
+					}
+			case VoronoiVisualization.COLOR_DEVIATION:
+				System.err.println("Option not supported for quantiles");
+				return null;
+			case VoronoiVisualization.COLOR_INTERNAL_DEVIATION://TODO: testing
+				System.err.println("Option not supported for quantiles");
+				return null;
+			}
+		}
+	return null;
+	}
+
+public Color getColor(ArrayList<Float> exs, int col)
+	{
+	//setScale(expData, col);
+	if(exs==null)	return null;
+	return getColor(exs.get(col), col);
+	/*int h=-1;
 	if(whiteValue==VoronoiVisualization.MEAN)	//raw coloring
 		{
 		switch(COLOR_MODE)
@@ -573,7 +627,7 @@ public Color getColor(ArrayList<Float> exs, int col)
 					return new Color(255,h,h);
 					}
 				else
-					{//h=(int)Math.round(255-(Math.abs(cell.expressionLevel.get(column)-avgExp)/Math.abs(minExp-avgExp))*255);
+					{
 					h=(int)Math.round(255-(Math.abs(exs.get(col)-avgExp)/Math.abs(minExp-avgExp))*255);
 					return new Color(h,h,255);
 					}
@@ -581,10 +635,6 @@ public Color getColor(ArrayList<Float> exs, int col)
 				h=(int)Math.round(255-(Math.abs(exs.get(col)-avgExp)/Math.max(Math.abs(avgExp-minExp), Math.abs(avgExp-maxExp)))*255);
 				return new Color(h,255,h);
 			case VoronoiVisualization.COLOR_INTERNAL_DEVIATION://TODO: testing
-				/*if(cell.expressionDeviation.size()>0)	
-					h=(int)(255-(exs.get(col)/maxSd[col])*255);
-				else	h=255;
-				return new Color(h,255,h);*/
 				return null;
 			}
 		}
@@ -612,7 +662,7 @@ public Color getColor(ArrayList<Float> exs, int col)
 				return null;
 			}
 		}
-	return null;
+	return null;*/
 	}
 
 public void drawProfile(Cell c)
@@ -1279,7 +1329,7 @@ public void mouseReleased() {
 										for(String g:p.getNames())
 											{
 											int pos=-1;
-											if(!expData.chip.equals("entrezgene"))
+											if(!expData.chip.equals("entrezgene") && !(expData.chip.equals("ensembl_gene_id") && expData.organismKegg.equals("sce")))
 												{//translation in the case of non-native matrix ids
 												String syn=geneMap.get(g.replace("ko:", ""));
 												if(syn!=null)
@@ -1300,25 +1350,8 @@ public void mouseReleased() {
 										if(cont>0)
 											{
 											ex/=cont;
-											switch(COLOR_MODE)
-												{
-												case COLOR_EXPRESSION:
-													if(ex>avgExp)		
-														{
-														int h=(int)Math.round(255-((ex-avgExp)/(maxExp-avgExp)*255));
-														bg.add("#"+Color2Hex(255, h, h));
-														}
-													else
-														{
-														int h=(int)Math.round(255-(Math.abs(ex-avgExp)/Math.abs(minExp-avgExp)*255));
-														bg.add("#"+Color2Hex(h,h, 255));
-														}
-													break;
-												case COLOR_DEVIATION:
-													int h=(int)Math.round(255-(Math.abs(ex-avgExp)/Math.max(Math.abs(avgExp-minExp), Math.abs(avgExp-maxExp)))*255);
-													bg.add("#"+Color2Hex(h,255,h));
-													break;
-												}
+											Color color=getColor(ex, this.selectedCol);
+											bg.add("#"+Color2Hex(color.getRed(), color.getGreen(), color.getBlue()));
 											fg.add("#007700");
 											els.add(p.getElement_id());
 											}//if it has expression mapped
@@ -1345,7 +1378,11 @@ public void mouseReleased() {
 								long t= System.currentTimeMillis();
 								String[] element_id_list=c.term.geneExs.keySet().toArray(new String[0]);
 								
+								//The natural KEGG id is entrez, except for sce (so far)
 								HashMap<String,String> geneMap=expData.invertedHash(expData.entrezgeneHash);
+								if(expData.organismKegg.equals("sce"))
+									geneMap=expData.invertedHash(expData.ensembl_gene_idHash);
+									
 								
 								ArrayList<String> fg=new ArrayList<String>();
 								ArrayList<String> bg=new ArrayList<String>();
@@ -1353,7 +1390,6 @@ public void mouseReleased() {
 							
 								for(PathwayElement p:ps)
 									{
-								//	System.out.println(p.getType()+"\t"+p.getElement_id());
 									if(p.getType().equals("gene"))
 										{
 										float ex=0;
@@ -1363,17 +1399,20 @@ public void mouseReleased() {
 											{
 											if(g.indexOf(":")>=0)	g=g.substring(g.indexOf(":")+1).toLowerCase();
 											int pos=-1;
-											if(!expData.chip.equals("entrezgene"))
+											
+											//if the chip ids match the natural KEGG ids (entrez except for sce), direct mapping
+											if((expData.chip.equals("entrezgene") && !expData.organismKegg.equals("sce")) || (expData.chip.equals("ensembl_gene_id") && expData.organismKegg.equals("sce")) )
+												pos=Arrays.binarySearch(element_id_list, g.replace("ko:", ""));
+											else
+ 											//if(!expData.chip.equals("entrezgene") && !(expData.chip.equals("ensembl_gene_id") && expData.organismKegg.equals("sce")))
 												{
 												String syn=geneMap.get(g.replace("ko:", ""));
 												if(syn!=null)
 													pos=Arrays.binarySearch(element_id_list, syn);
 												}
-											else
-												pos=Arrays.binarySearch(element_id_list, g.replace("ko:", ""));	
+											//else
+											//	pos=Arrays.binarySearch(element_id_list, g.replace("ko:", ""));	
 											
-											//if((pos=Arrays.binarySearch(element_id_list, g))>=0)
-											//if((pos=Arrays.binarySearch(element_id_listENTREZ, g))>=0)
 											if(pos>=0)
 												{
 												ArrayList<Float> exs=((ArrayList<Float>)c.term.geneExs.get(element_id_list[pos]));
@@ -1388,25 +1427,8 @@ public void mouseReleased() {
 										if(cont>0)
 											{
 											ex/=cont;
-											switch(COLOR_MODE)
-												{
-												case COLOR_EXPRESSION:
-													if(ex>avgExp)
-														{
-														int h=(int)Math.round(255-((ex-avgExp)/(maxExp-avgExp)*255));
-														bg.add("#"+Color2Hex(255, h, h));
-														}
-													else
-														{
-														int h=(int)Math.round(255-(Math.abs(ex-avgExp)/Math.abs(minExp-avgExp)*255));
-														bg.add("#"+Color2Hex(h,h, 255));
-														}
-													break;
-												case COLOR_DEVIATION:
-													int h=(int)Math.round(255-(Math.abs(ex-avgExp)/Math.max(Math.abs(avgExp-minExp), Math.abs(avgExp-maxExp)))*255);
-													bg.add("#"+Color2Hex(h,255,h));
-													break;
-												}
+											Color color=getColor(ex, this.selectedCol);
+											bg.add("#"+Color2Hex(color.getRed(), color.getGreen(), color.getBlue()));
 											fg.add("#007700");
 											els.add(p.getElement_id());
 											}//if it has expression mapped

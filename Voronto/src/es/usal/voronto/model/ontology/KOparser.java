@@ -77,8 +77,12 @@ public class KOparser {
 	    System.out.println("koterms read");
 	    if(ed!=null)
 	    	{
-	    	if(ed.organismKegg.equals("sce"))	{if(!ed.chip.equals("ensembl_gene_id") && ed.ensembl_gene_idHash!=null)	geneMap=ed.invertedHash(ed.ensembl_gene_idHash);}
-	    	else								{if(!ed.chip.equals("entrezgene") && ed.entrezgeneHash!=null)	geneMap=ed.invertedHash(ed.entrezgeneHash);}
+	    	if(ed.organismKegg.equals("sce"))	
+	    		{if(!ed.chip.equals("ensembl_gene_id") && ed.ensembl_gene_idHash!=null)	
+	    			geneMap=ed.invertedHash(ed.ensembl_gene_idHash);}
+	    	else								
+	    		{if(!ed.chip.equals("entrezgene") && ed.entrezgeneHash!=null)	
+	    			geneMap=ed.invertedHash(ed.entrezgeneHash);}
 	    	}
 	    }catch(Exception e){e.printStackTrace();}
 	

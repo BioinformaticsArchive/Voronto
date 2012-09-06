@@ -164,33 +164,6 @@ public class Voronto extends JFrame implements PropertyChangeListener{
             			
             	    	type=VoronoiVisualization.MF;
             			break;	
-            		/*	
-            	    case 1:
-            	    	m=GOparser.parse("es/usal/voronto/data/go/goslim_generic.obo", "biological_process", false);
-            	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
-            	    	m=m.get(new OntologyTerm("biological_process", "GO:0008150"));
-            	    	if(md!=null)	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.SLIMBP, md);
-                    	
-            		    type=VoronoiVisualization.SLIMBP;
-            		    break;
-            	    case 2:
-            	    	m=GOparser.parse("es/usal/voronto/data/go/goslim_generic.obo", "cellular_component", false);
-            	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
-            	    	m=m.get(new OntologyTerm("cellular_component", "GO:0005575"));
-            	    	if(md!=null)	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.SLIMCC, md);
-	            		
-            	    	type=VoronoiVisualization.SLIMCC;
-            	    	
-            	    	break;
-            	    case 3:
-            	    	m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", false);
-            	    	//m=GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", true);//for updates
-            	    	m=m.get(new OntologyTerm("GO slim ontology", ""));
-            	    	m=m.get(new OntologyTerm("biological_process", "GO:0008150"));
-            	    	if(md!=null)	GOparser.annotate(m, md.organism, md.chip, VoronoiVisualization.BP, md);
-            			
-            	    	type=VoronoiVisualization.GO;
-            			break;*/
             		case 4:
             			if(md!=null)  			m=ReactomeParser.readSer("es/usal/voronto/data/reactome/"+md.organism+".ser", md);
             			else       				m=ReactomeParser.readSer("es/usal/voronto/data/reactome/Homo sapiens.ser", null);
@@ -227,7 +200,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
         				
             			break;
             	    default:
-                		System.out.println("Ontology not supported yet");
+                		System.out.println("Ontology not supported");
                 		break;
             	    }
                 time2=System.currentTimeMillis();

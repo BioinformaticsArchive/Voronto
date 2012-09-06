@@ -964,9 +964,12 @@ private void generateSynonyms()
 				entrezgene[pos]=ent;
 				ensembl_gene_id[pos]=ens;
 				external_gene_id[pos]=ext;
-				if(ent!=null && ent.length()>0)	entrezgeneHash.put(sortedGeneNames[pos],ent);
-				if(ens!=null && ens.length()>0)	ensembl_gene_idHash.put(sortedGeneNames[pos],ens);
-				if(ext!=null && ext.length()>0)	external_gene_idHash.put(sortedGeneNames[pos],ext);
+//				if(ent!=null && ent.length()>0)	entrezgeneHash.put(sortedGeneNames[pos],ent);
+//				if(ens!=null && ens.length()>0)	ensembl_gene_idHash.put(sortedGeneNames[pos],ens);
+//				if(ext!=null && ext.length()>0)	external_gene_idHash.put(sortedGeneNames[pos],ext);
+				if(ent!=null && ent.length()>0)	entrezgeneHash.put(sortedGeneNames[pos],ent.toLowerCase());
+				if(ens!=null && ens.length()>0)	ensembl_gene_idHash.put(sortedGeneNames[pos],ens.toLowerCase());
+				if(ext!=null && ext.length()>0)	external_gene_idHash.put(sortedGeneNames[pos],ext.toLowerCase());
 				cont++;
 				//System.out.println("Gene "+pos+" with name "+sortedGeneNames[pos]+" is "+entrezgene[pos]+"\t"+ensembl_gene_id[pos]+"\t"+external_gene_id[pos]);
 				}

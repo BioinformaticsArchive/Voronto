@@ -300,17 +300,21 @@ public class GOparser {
 		while((cad=in.readLine())!=null)
 			{
 			fields=cad.split("\t");
-			if(fields!=null && fields[id].length()>0 && !fields[id].equals("NA"))	//add the annotation to a data structure
+	//		if(fields.length<2)
+	//			System.out.println("here");
+	//		System.out.println(cad);
+	//		System.out.println(fields.length);
+			if(fields!=null && fields.length>=id && fields[id].length()>0 && !fields[id].equals("NA"))	//add the annotation to a data structure
 				{
 				if(annotations.get(fields[0])==null)
 					annotations.put(fields[0], new ArrayList<String>());
 				if(compareHash!=null)
 					{
-					String gene=compareHash.get(fields[id]);
+					String gene=compareHash.get(fields[id].toLowerCase());
 					if(gene!=null)
 						annotations.get(fields[0]).add(gene);
 					}
-				else	annotations.get(fields[0]).add(fields[id]);
+				else	annotations.get(fields[0]).add(fields[id].toLowerCase());
 				mappedGenes.add(fields[id].toLowerCase());
 				}
 			}
@@ -321,10 +325,6 @@ public class GOparser {
 		if(ed!=null)
 			{
 			int map=0;
-			
-			/*for(String mg:ed.sortedGeneNames)
-				if(!mappedGenes.contains(mg))
-					nomap++;*/
 			
 			HashMap<String,String> compareHashI=null;
 			if(compareHash!=null)	compareHashI=ed.invertedHash(compareHash);
