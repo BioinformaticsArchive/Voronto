@@ -74,6 +74,7 @@ public class BernhardtTessellation {
 		this.expData=md;
 		this.ontology=ontology;
 		this.maxDepth=maxDepth;
+		
 		//1) Recursively generate the cell hierarchy
 		long time=System.currentTimeMillis();
 		OntologyTerm[] terms=m.keySet().toArray(new OntologyTerm[0]);//TODO: this might lead to unnefficient computing.
@@ -85,7 +86,7 @@ public class BernhardtTessellation {
 	    	if(c!=null)	cellsTemp.add(c);
 	    	}
 	    cells=cellsTemp.toArray(new Cell[0]);
-	    if(cells.length==0)	throw new Exception("No mapped genes. Check that gene ids match with ontology");
+	    if(cells.length==0)	throw new Exception("No mapped genes. Check that gene ids match with ontology's available ids");
 	    System.out.println("Number of cells "+numLeaves);
 	    System.out.println("Time in building cells "+(System.currentTimeMillis()-time)/1000.0);
 		
@@ -143,7 +144,7 @@ public class BernhardtTessellation {
 				c.numLeaves=c.getNumMatchedTerms(expData);
 				break;
 			default:
-				System.err.println("No matched ontology");
+				//System.err.println("No matched ontology");
 				if(expData!=null)	c.numLeaves=c.getNumMatchedTerms(expData);
 				break;
 			}

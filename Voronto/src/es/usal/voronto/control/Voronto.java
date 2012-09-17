@@ -106,21 +106,33 @@ public class Voronto extends JFrame implements PropertyChangeListener{
 			    	catch(Exception e)
 			    		{
 			    		time2=System.currentTimeMillis();
-			    		message="\t\tERROR\n\t"+e.getMessage()+"\nNOTE: Error loading expression data, an unmapped ontology will be visualized\nParsing ontology...";
+			    		//message="\t\tERROR\n\t"+e.getMessage()+"\nNOTE: Error loading expression data, an unmapped ontology will be visualized\nParsing ontology...";
+			    		message="\t\tERROR\n\t"+e.getMessage()+"\nNOTE: Error loading expression data, please select one";
 			    		e.printStackTrace();
 			    		setProgress(20);
 			    		Thread.sleep(5000);
 					    System.out.println("Time in getting the microarray: "+(time2-time)/1000.0);
+					    return null;
 				    	}
 			    	}
 		        else
 		        	{
-		        	message="\nNOTE: No expression data selected, an unmapped ontology will be visualized\nParsing ontology...";
+		        	//message="\nNOTE: No expression data selected, an unmapped ontology will be visualized\nParsing ontology...";
+		        	message="\nNOTE: No expression data selected, please select one";
 		        	setProgress(20);
 			    	md=null;
 		        	}
-	                
-	            //2) Parse ontology
+		        
+		        
+		        if(md==null)
+			        {
+			     	message="\n\nStop: no expression data loaded";
+	                setProgress(0);
+	                return null;
+			        }
+           
+		        
+		        //2) Parse ontology
 	            int type=-1;
 	            TreeMap<OntologyTerm, TreeMap> m=null;
 	            String customName=null;

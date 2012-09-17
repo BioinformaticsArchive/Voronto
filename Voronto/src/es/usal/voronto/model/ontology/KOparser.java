@@ -77,7 +77,7 @@ public class KOparser {
 	    System.out.println("koterms read");
 	    if(ed!=null)
 	    	{
-	    	if(ed.organismKegg.equals("sce"))	
+	    	if(ed.organismKegg.equals("sce") || ed.organismKegg.equals("spo"))	
 	    		{if(!ed.chip.equals("ensembl_gene_id") && ed.ensembl_gene_idHash!=null)	
 	    			geneMap=ed.invertedHash(ed.ensembl_gene_idHash);}
 	    	else								

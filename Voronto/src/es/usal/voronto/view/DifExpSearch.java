@@ -44,6 +44,7 @@ public class DifExpSearch extends JDialog {
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBackground(Color.WHITE);
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+		
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
 		contentPanel.setLayout(null);
 		{
@@ -118,7 +119,6 @@ public class DifExpSearch extends JDialog {
 		okButton.setActionCommand("OK");
 		okButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				
 				deSearch();
 				setVisible(false);
 				}
@@ -136,7 +136,6 @@ public class DifExpSearch extends JDialog {
 		
 		buttonPane.add(okButton);
 		getRootPane().setDefaultButton(okButton);
-	
 	}
 	
 	private void deSearch()

@@ -43,8 +43,9 @@ public class ReactomeParser
 		//A) Parse a single file
 		//ReactomeParser.parse("/Users/rodri/Desktop/biopax3/Homo sapiens.owl");
 		//B) Parse every file in a folder
-		ReactomeParser.buildReactomeHierarchy("/Users/rodri/Desktop/biopax3/mapped");
+		ReactomeParser.buildReactomeHierarchy("/Users/rodri/Desktop/biopax3/reactomeSep2012/mapped");
 		System.out.println("parsing takes "+(System.currentTimeMillis()-t)/1000.0);
+		//ReactomeParser.parse("/Users/rodri/Desktop/biopax3/mapped/Caenorhabditis elegans.owl");
 		}
 	
 	/**
@@ -95,10 +96,15 @@ public class ReactomeParser
 		    	if(map.get(ot)==null || map.get(ot).isEmpty())
 		    		map.remove(ot);
 		    	}
-		    if(ed!=null && !ed.chip.equals("entrezgene") && ed.entrezgeneHash!=null)
-		    	{
-		    	//proceed with the translation of annotations
-		    	recursiveTranslation(map, ed.invertedHash(ed.entrezgeneHash));
+		   // if(ed!=null && !ed.chip.equals("entrezgene") && ed.entrezgeneHash!=null)
+		    if(ed!=null)
+				{
+		    	if(!ed.chip.equals("ensembl_gene_id") && ed.ensembl_gene_idHash!=null)
+		    		//proceed with the translation of annotations
+		    		//recursiveTranslation(map, ed.invertedHash(ed.entrezgeneHash));
+		    		recursiveTranslation(map, ed.invertedHash(ed.ensembl_gene_idHash));
+		    	else
+		    		recursiveTranslation(map, null);
 		    	}
 		
 		return map;	
@@ -111,11 +117,14 @@ public class ReactomeParser
 			{
 			HashSet<String> annot=ot.geneIds;
 			HashSet<String> annot2=new HashSet();
-				
+			System.out.println(ot.id+" has "+annot.size());
 			for(String s:annot)
 				{
-				String st=geneMap.get(s);
-				if(st!=null)	annot2.add(st);
+				String st=null;
+				if(geneMap!=null)	st=geneMap.get(s.toLowerCase());
+				else				st=s;
+				if(st!=null)	
+					annot2.add(st);
 				}
 			ot.geneIds.clear();
 			ot.geneIds.addAll(annot2);

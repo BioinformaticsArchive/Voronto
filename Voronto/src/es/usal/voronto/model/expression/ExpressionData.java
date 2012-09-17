@@ -791,7 +791,8 @@ public class ExpressionData
 				    }
 		        if(stop)
 		        	{
-		        	System.out.println("Out because of "+scanner.next());
+		        	//System.out.println("Out because of "+scanner.next());
+		        	System.out.println("Out because of "+scan);
 		        	break;
 		        	}
 		        }
@@ -825,7 +826,8 @@ public class ExpressionData
 	//Read sample related info
 	if(rowHeader>=0)
 		{
-		st=new StringTokenizer(in.readLine(), "\t"); //First row contains sample names and the different gene names maybe
+		String cad=in.readLine();
+		st=new StringTokenizer(cad, "\t"); //First row contains sample names and the different gene names maybe
 		for(int i=0;i<colHeader;i++)		//Depending on the colHeader, it can also contain additional information. TODO right now colHeader is always 1, with organism/geneID info
 			{
 			description=st.nextToken();//Pasamos los que no tienen q ver, que nombran las columnas de explicaci�n de genes
@@ -854,11 +856,12 @@ public class ExpressionData
 				}
 			else
 				{
-				throw new Exception("Organims/IDtype expected in the first cell (found: '"+description+"')");
+				throw new Exception("Organism/IDtype expected in the first cell (found: '"+description+"')");
 				}
 			}
 		
-		for(int i=0;i<numConditions;i++)	conditionNames[i]=st.nextToken().trim();
+		for(int i=0;i<numConditions;i++)	
+			conditionNames[i]=st.nextToken().trim();
 		for(int i=0;i<rowHeader-1;i++)	//Read experiment factors
 			{
 			st=new StringTokenizer(in.readLine(), "\t"); 
@@ -964,38 +967,16 @@ private void generateSynonyms()
 				entrezgene[pos]=ent;
 				ensembl_gene_id[pos]=ens;
 				external_gene_id[pos]=ext;
-//				if(ent!=null && ent.length()>0)	entrezgeneHash.put(sortedGeneNames[pos],ent);
-//				if(ens!=null && ens.length()>0)	ensembl_gene_idHash.put(sortedGeneNames[pos],ens);
-//				if(ext!=null && ext.length()>0)	external_gene_idHash.put(sortedGeneNames[pos],ext);
 				if(ent!=null && ent.length()>0)	entrezgeneHash.put(sortedGeneNames[pos],ent.toLowerCase());
 				if(ens!=null && ens.length()>0)	ensembl_gene_idHash.put(sortedGeneNames[pos],ens.toLowerCase());
 				if(ext!=null && ext.length()>0)	external_gene_idHash.put(sortedGeneNames[pos],ext.toLowerCase());
 				cont++;
-				//System.out.println("Gene "+pos+" with name "+sortedGeneNames[pos]+" is "+entrezgene[pos]+"\t"+ensembl_gene_id[pos]+"\t"+external_gene_id[pos]);
 				}
 			}
-		
-/*
-		HashMap<String,String> geneMap=null;
-		if(organismKegg.equals("sce"))	{if(!chip.equals("ensembl_gene_id") && ensembl_gene_idHash!=null)	geneMap=ensembl_gene_idHash;}
-    	else							{if(!chip.equals("entrezgene") && entrezgeneHash!=null)	geneMap=entrezgeneHash;}
-		
-		if(geneMap!=null)
-			{
-			koidList.clear();
-	    	for(int i=0;i<geneNames.length;i++)
-				{
-				//geneKOIDs[i]=organismKegg+":"+geneNames[i];//TODO: this might not be true for all kinds of ids and species
-				//koidList.add(geneKOIDs[i].toLowerCase());//TODO: must be changed not to geneNames but to the corresponding id for KEGG/species
-	    		geneKOIDs[i]=organismKegg+":"+geneMap.get(geneNames[i].toLowerCase());//TODO: this might not be true for all kinds of ids and species
-				koidList.add(geneKOIDs[i].toLowerCase());//TODO: must be changed not to geneNames but to the corresponding id for KEGG/species
-				}
-			}*/
-		//System.out.println(cont+" genes out of "+geneNames.length+" have recorded synonyms");
 		}
-	catch(IOException ioe)
+	catch(Exception ioe)
 		{
-		System.out.println("No synonym list recorder for organism "+organismKegg);
+		System.out.println("No synonym list recorded for organism "+organismKegg);
 		}
 	}
 

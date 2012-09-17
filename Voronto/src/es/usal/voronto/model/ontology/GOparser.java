@@ -34,13 +34,14 @@ public class GOparser {
 	
 	public static void main(String[] args)
 		{
-		File dir=new File("/Users/rodri/Desktop/goa/goa");
+		/*File dir=new File("/Users/rodri/Desktop/goa/goa");
 		for(File f:dir.listFiles())
 			{
 			String s=f.getAbsolutePath();
 			if(s.contains("gene_association.goa"))
 				GOparser.map(s, "/Users/rodri/desktop/goa/mini/go-"+convert2(s.substring(s.indexOf(".goa")+5))+"_gene_ensembl.map");
-			}
+			}*/
+		GOparser.map("/Users/rodri/Desktop/goa/gene_association.GeneDB_Spombe.genedb_spombe", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/go-spombe_gene_ensembl.map");
 		//GOparser.map("/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/data/calbicans/annotations/gene_association.cgd", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/gobiological_process-calbicans_gene_ensembl.map");
 		
 		//GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", true);
@@ -300,11 +301,7 @@ public class GOparser {
 		while((cad=in.readLine())!=null)
 			{
 			fields=cad.split("\t");
-	//		if(fields.length<2)
-	//			System.out.println("here");
-	//		System.out.println(cad);
-	//		System.out.println(fields.length);
-			if(fields!=null && fields.length>=id && fields[id].length()>0 && !fields[id].equals("NA"))	//add the annotation to a data structure
+			if(fields!=null && fields.length>id && fields[id].length()>0 && !fields[id].equals("NA"))	//add the annotation to a data structure
 				{
 				if(annotations.get(fields[0])==null)
 					annotations.put(fields[0], new ArrayList<String>());

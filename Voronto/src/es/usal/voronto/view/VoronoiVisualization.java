@@ -382,6 +382,8 @@ public class VoronoiVisualization extends PApplet{
 						//text(h.term.name+" ("+h.term.geneExs.size()+" "+(int)h.numLeaves+")", 10, (int)(END_Y+font.getSize()*0.5));
 						fill(255,255,255);
 						
+						//int antSC=selectedCol;
+						//selectedCol=-1;
 						switch(profileType)
 							{
 							case AVERAGE_HEATMAP:
@@ -398,6 +400,8 @@ public class VoronoiVisualization extends PApplet{
 								drawProfilePlot(h);
 								break;
 							}
+						//selectedCol=antSC;
+						
 						}
 					}
 				//System.out.println("ids on term "+h.term.name+": "+h.term.geneIds.size());
@@ -428,6 +432,9 @@ public class VoronoiVisualization extends PApplet{
 				textAlign(LEFT, TOP);
 				text(selectedCell.term.name+" ("+(int)(selectedCell.numLeaves)+")", 10, (int)(END_Y+font.getSize()*0.5));
 				fill(255,255,255);
+				
+				//int ant=selectedCol;
+				//selectedCol=-1;
 				switch(profileType)
 					{
 					case AVERAGE_HEATMAP:
@@ -444,6 +451,7 @@ public class VoronoiVisualization extends PApplet{
 						drawProfilePlot(selectedCell);
 						break;
 					}
+				//selectedCol=ant;
 				}
 			}
 				
@@ -683,12 +691,15 @@ public void drawProfile(Cell c)
 			}
 		}
 	
-	Color co=c.color.get(selectedCol);
-	fill(co.getRed(), co.getGreen(), co.getBlue());
-	rect((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20,squareSize,squareSize);
-	strokeWeight(2);
-	stroke(0);
-	line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+squareSize,(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize+squareSize,this.END_Y+20+squareSize);
+	if(selectedCol>=0)
+		{
+		Color co=c.color.get(selectedCol);
+		fill(co.getRed(), co.getGreen(), co.getBlue());
+		rect((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20,squareSize,squareSize);
+		strokeWeight(2);
+		stroke(0);
+		line((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+squareSize,(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize+squareSize,this.END_Y+20+squareSize);
+		}
 	}
 
 public void drawProfileLine(Cell c)
@@ -739,12 +750,15 @@ public void drawProfileLine(Cell c)
 	
 	stroke(0);
 	fill(0);
-	double e;
-	if(whiteValue==MEAN)
-		e=squareSize*2-squareSize*2*(c.expressionLevel.get(selectedCol)-expData.min)/(expData.max-expData.min);
-	else
-		e=squareSize*2-squareSize*2*(0.01*expData.getQuantile(c.expressionLevel.get(selectedCol)));
-	ellipse((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+(int)e,2,2);
+	if(selectedCol>=0)
+		{
+		double e;
+		if(whiteValue==MEAN)
+			e=squareSize*2-squareSize*2*(c.expressionLevel.get(selectedCol)-expData.min)/(expData.max-expData.min);
+		else
+			e=squareSize*2-squareSize*2*(0.01*expData.getQuantile(c.expressionLevel.get(selectedCol)));
+		ellipse((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+(int)e,2,2);
+		}
 	}
 
 public void drawProfilePlot(Cell c)
@@ -811,16 +825,6 @@ public void drawProfilePlot(Cell c)
 			if(rnd>4)	rnd=-2;
 			}
 		}
-	
-	//stroke(0);
-	/*noStroke();
-	fill(0);
-	double e;
-	if(whiteValue==MEAN)
-		e=squareSize*2-squareSize*2*(c.expressionLevel.get(selectedCol)-expData.min)/(expData.max-expData.min);
-	else
-		e=squareSize*2-squareSize*2*(0.01*expData.getQuantile(c.expressionLevel.get(selectedCol)));
-	ellipse((int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+selectedCol*squareSize, this.END_Y+20+(int)e,3,3);*/
 	}
 
 
@@ -1380,7 +1384,7 @@ public void mouseReleased() {
 								
 								//The natural KEGG id is entrez, except for sce (so far)
 								HashMap<String,String> geneMap=expData.invertedHash(expData.entrezgeneHash);
-								if(expData.organismKegg.equals("sce"))
+								if(expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo"))
 									geneMap=expData.invertedHash(expData.ensembl_gene_idHash);
 									
 								
@@ -1401,7 +1405,7 @@ public void mouseReleased() {
 											int pos=-1;
 											
 											//if the chip ids match the natural KEGG ids (entrez except for sce), direct mapping
-											if((expData.chip.equals("entrezgene") && !expData.organismKegg.equals("sce")) || (expData.chip.equals("ensembl_gene_id") && expData.organismKegg.equals("sce")) )
+											if((expData.chip.equals("entrezgene") && !(expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo"))) || (expData.chip.equals("ensembl_gene_id") && (expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo"))) )
 												pos=Arrays.binarySearch(element_id_list, g.replace("ko:", ""));
 											else
  											//if(!expData.chip.equals("entrezgene") && !(expData.chip.equals("ensembl_gene_id") && expData.organismKegg.equals("sce")))
