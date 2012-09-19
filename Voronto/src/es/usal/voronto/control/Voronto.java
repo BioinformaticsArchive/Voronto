@@ -7,6 +7,7 @@ import java.awt.Toolkit;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.util.Comparator;
 import java.util.TreeMap;
@@ -62,10 +63,11 @@ public class Voronto extends JFrame implements PropertyChangeListener{
 		{
 		
 		int ontology=0;
-		String expressionFile="";
+		//String expressionFile="";
+		File expressionFile=null;
 		Voronto voronto=null;
 		String ontologyFile="";
-		public Task(String ef, String of, int o, Voronto v)
+		public Task(File ef, String of, int o, Voronto v)
 			{
 			expressionFile=ef;
 			ontologyFile=of;
@@ -96,7 +98,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
 			        System.out.println("building expression data...");
 			    	time=System.currentTimeMillis();
 			    	try{
-			    		md=new ExpressionData(expressionFile, false, 1,1,1);
+			    		md=new ExpressionData(expressionFile.getAbsolutePath(), expressionFile.getName(), false, 1,1,1);
 				    	time2=System.currentTimeMillis();
 				        message="\t\tDONE\tin "+(time2-time)/1000.0+"s\nParsing ontology...";
 				        setProgress(20);
@@ -107,7 +109,7 @@ public class Voronto extends JFrame implements PropertyChangeListener{
 			    		{
 			    		time2=System.currentTimeMillis();
 			    		//message="\t\tERROR\n\t"+e.getMessage()+"\nNOTE: Error loading expression data, an unmapped ontology will be visualized\nParsing ontology...";
-			    		message="\t\tERROR\n\t"+e.getMessage()+"\nNOTE: Error loading expression data, please select one";
+			    		message="\t\tERROR\n\t"+e.getMessage()+"\nNOTE: Error loading expression data";
 			    		e.printStackTrace();
 			    		setProgress(20);
 			    		Thread.sleep(5000);
@@ -303,7 +305,8 @@ public class Voronto extends JFrame implements PropertyChangeListener{
 	    
     }
 	
-public void launch(String expressionFile, String ontologyFile, int ontology)
+//public void launch(String expressionFile, String ontologyFile, int ontology)
+public void launch(File expressionFile, String ontologyFile, int ontology)
 	{
 	try{
 	progressMonitor = new ProgressMonitor(Voronto.this,  "Loading Voronto", "", 0, 100);
@@ -315,7 +318,7 @@ public void launch(String expressionFile, String ontologyFile, int ontology)
 	if(expressionPath!=null && expressionFile!=null)
 		{
 		BufferedWriter bw=new BufferedWriter(new FileWriter(expressionPath));
-		bw.write(expressionFile);
+		bw.write(expressionFile.getAbsolutePath());
 		bw.close();
 		}
 	if(ontologyPath!=null && ontologyFile!=null)
@@ -331,7 +334,8 @@ public void launch(String expressionFile, String ontologyFile, int ontology)
 	task.execute();
 	
 	setResizable(false);
-	if(expressionFile!=null)	setTitle(expressionFile.substring(expressionFile.lastIndexOf("/")+1));
+	String path=expressionFile.getAbsolutePath();
+	if(expressionFile!=null)	setTitle(path.substring(path.lastIndexOf("/")+1));
 	}catch(Exception e){e.printStackTrace();}
 	}
   

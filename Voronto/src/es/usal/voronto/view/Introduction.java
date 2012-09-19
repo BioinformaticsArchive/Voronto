@@ -233,8 +233,10 @@ public class Introduction extends javax.swing.JPanel implements MouseListener{
 							}
 						else
 							{
-							if(ontologyFile==null)	parent.launch(expressionFile.getPath(), null, jComboBox1.getSelectedIndex());
-							else					parent.launch(expressionFile.getPath(), ontologyFile.getPath(), jComboBox1.getSelectedIndex());
+							//if(ontologyFile==null)	parent.launch(expressionFile.getPath(), null, jComboBox1.getSelectedIndex());
+							//else					parent.launch(expressionFile.getPath(), ontologyFile.getPath(), jComboBox1.getSelectedIndex());
+							if(ontologyFile==null)	parent.launch(expressionFile, null, jComboBox1.getSelectedIndex());
+							else					parent.launch(expressionFile, ontologyFile.getPath(), jComboBox1.getSelectedIndex());
 							}
 						}
 					});

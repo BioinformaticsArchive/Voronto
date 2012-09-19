@@ -209,16 +209,17 @@ public class ExpressionData
 	 * @param colHeader Number of initial columns with column information (usually one)
 	 * @param nd	Number of decimals to be shown if numerically showing expression levels
 	 */
-	public ExpressionData(String path, boolean invert, int rowHeader, int colHeader, int nd) throws Exception
+	public ExpressionData(String path, String name, boolean invert, int rowHeader, int colHeader, int nd) throws Exception
 		{
-		this.path=path.replace("\\", "/");
+		//this.path=path.replace("\\", "/");
+		this.path=path;
 		experimentFactors=new ArrayList<String>();
 		experimentFactorValues=new HashMap<String,String[]>();
 		this.filePath=this.path;
-		this.name=path.substring(path.lastIndexOf("/")+1, path.lastIndexOf("."));
+		//this.name=path.substring(path.lastIndexOf("/")+1, path.lastIndexOf("."));
+		this.name=name;
 		this.rMatrixName=name.replace("-", "").replace(" ", ".");
 		loadFromFile(rowHeader, colHeader);
-		//this.path=path.substring(0, path.lastIndexOf("/"));
 		}
 	
 	public void simpleStats()
@@ -908,7 +909,7 @@ public class ExpressionData
 				
 				try{
 					for(int j=0;j<numConditions;j++)
-						matrix[i][j]=new Double(st.nextToken()).doubleValue();
+						matrix[i][j]=new Double(st.nextToken().replace(",", ".")).doubleValue();
 				}catch(Exception e)
 					{
 					throw new Exception("Number format error on expression levels ("+e.getMessage()+")");
