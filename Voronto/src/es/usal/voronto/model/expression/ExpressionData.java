@@ -97,9 +97,9 @@ public class ExpressionData
 	public HashMap<String,String> ensembl_gene_idHash=null;
 	public HashMap<String,String> external_gene_idHash=null;
 	
-	public final int ENTREZ=0;
-	public final int SYMBOL=1;
-	public final int ENSEMBL=2;
+	public static final int ENTREZ=0;
+	public static final int SYMBOL=1;
+	public static final int ENSEMBL=2;
 	
 
 	

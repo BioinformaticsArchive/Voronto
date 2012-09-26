@@ -124,7 +124,7 @@ public class ReactomeParser
 				if(geneMap!=null)	st=geneMap.get(s.toLowerCase());
 				else				st=s;
 				if(st!=null)	
-					annot2.add(st);
+					annot2.add(st.toLowerCase());
 				}
 			ot.geneIds.clear();
 			ot.geneIds.addAll(annot2);

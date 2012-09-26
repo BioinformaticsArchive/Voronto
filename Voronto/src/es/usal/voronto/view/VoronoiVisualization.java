@@ -9,7 +9,9 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Area;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -763,7 +765,7 @@ public void drawProfileLine(Cell c)
 
 public void drawProfilePlot(Cell c)
 	{
-	if(expData==null || minHoveredCell==null)	return;
+	if(expData==null || c==null)	return;
 	
 	int squareSize=12;
 	strokeWeight(1);
@@ -786,8 +788,9 @@ public void drawProfilePlot(Cell c)
 				(int)(width*0.5-expData.getNumConditions()*squareSize*0.5)+(expData.conditionNames.length-1)*squareSize, this.END_Y+20+(int)(em*0.5));
 		}
 	
-	if(minHoveredCell.term.geneExs==null || minHoveredCell.term.geneExs.values().iterator().next().size()!=expData.getNumConditions())
-		minHoveredCell.computeExpressionProfile(expData);
+	//if(minHoveredCell.term.geneExs==null || minHoveredCell.term.geneExs.values().iterator().next().size()!=expData.getNumConditions())
+	if(c.term.geneExs==null || c.term.geneExs.values().iterator().next().size()!=expData.getNumConditions())
+			c.computeExpressionProfile(expData);
 
 	noStroke();
 	fill(100);
@@ -800,7 +803,10 @@ public void drawProfilePlot(Cell c)
 			double e;
 			ArrayList<Float> p=c.term.geneExs.get(it.next());
 			if(p==null || p.size()==0)
+				{
 				System.out.println("p is null");
+				return;
+				}
 			if(whiteValue==MEAN)
 				{
 				e=squareSize*2-squareSize*2*(p.get(i)-expData.min)/(expData.max-expData.min);
@@ -1040,6 +1046,8 @@ public void recursiveRegionDrawing(Cell cell, int level)
 		this.stroke(120);
 		strokeWeight(getWidth(cell));
 		
+	//	if(cell.term.name.contains("autophagy") || cell.term.name.contains("Phagosome"))
+	//		System.out.println("taca");
 		if(cell.color!=null && cell.color.size()>0)	fill(cell.color.get(selectedCol).getRGB());
 		else										fill(240,240,240);
 		cell.region.draw(this.g); // draw this shape
@@ -1577,6 +1585,48 @@ public void keyPressed()
 		}
 	}
 
+public void export(OntologyTerm term)
+	{
+	JFileChooser selecFile = new JFileChooser();
+	selecFile.addChoosableFileFilter(new TextFileFilter());
+	
+	if(expData!=null)	
+		{
+		selecFile.setCurrentDirectory(new File(expData.filePath));
+		selecFile.setSelectedFile(new File(term.name.trim()+".txt"));
+		}
+	else
+		selecFile.setSelectedFile(new File(term.name.trim()+".txt"));
+	
+	int returnval = selecFile.showSaveDialog(this);
+
+	try{
+		if(returnval==JFileChooser.APPROVE_OPTION)
+			{
+			BufferedWriter bw=new BufferedWriter(new FileWriter(selecFile.getSelectedFile()));
+			bw.write("entrezgene\tensembl_gene_id\texternal_gene_id");
+			for(String c:expData.conditionNames)
+				bw.write("\t"+c);
+			
+			bw.newLine();
+			for(String id:term.geneExs.keySet())
+				{
+				String entrezgene=expData.getSynonym(id.toLowerCase(), ExpressionData.ENTREZ);
+				String ensembl_gene_id=expData.getSynonym(id.toLowerCase(), ExpressionData.ENSEMBL);
+				String external_gene_id=expData.getSynonym(id.toLowerCase(), ExpressionData.SYMBOL);
+				
+				bw.write(entrezgene+"\t"+ensembl_gene_id+"\t"+external_gene_id);
+				for(Float ex:term.geneExs.get(id))
+					{
+					bw.write("\t"+ex);
+					}
+				bw.newLine();
+				}
+			bw.close();
+			}
+	}catch(Exception e){e.printStackTrace();}
+	}
+
 public void keyReleased()
 	{
 	Cursor hourglassCursor, normalCursor;
@@ -1702,6 +1752,10 @@ public void keyReleased()
 		case 'r': //pRofile type
 			profileType=(profileType+1)%3;
 			break;
+		case 'e':
+			if(this.selectedCell!=null)	export(this.selectedCell.term);
+			else if(this.minHoveredCell!=null)	export(this.minHoveredCell.term);
+			break;
 		case 'p':
 			JFileChooser selecFile = new JFileChooser();
 			selecFile.addChoosableFileFilter(new ImageFileFilter());
@@ -1795,10 +1849,6 @@ public void keyReleased()
 			expression2color(this.expData);
 			redraw();
 			break;
-		case 'n'://change gene ids shown on cell heatmap
-			System.out.println("changing names!");
-			break;
-		
 		}
 	redraw();
 	}
@@ -2192,24 +2242,24 @@ public class ImageFileFilter extends FileFilter {
     }
 }
 
-private class PDFFileFilter extends FileFilter {
-
-	 /**
-    * Returns the extension of a file (the three letters after the dot)
-    * @param f	File to get the extension
-    * @return	extension of f
-    */
-	public final String getExtension(File f) {
-       String ext = null;
-       String s = f.getName();
-       int i = s.lastIndexOf('.');
-
-       if (i > 0 &&  i < s.length() - 1) {
-           ext = s.substring(i+1).toLowerCase();
-       }
-       return ext;
-   }
 	
+public class TextFileFilter extends FileFilter {
+
+		 /**
+	    * Returns the extension of a file (the three letters after the dot)
+	    * @param f	File to get the extension
+	    * @return	extension of f
+	    */
+		public final String getExtension(File f) {
+	       String ext = null;
+	       String s = f.getName();
+	       int i = s.lastIndexOf('.');
+
+	       if (i > 0 &&  i < s.length() - 1) {
+	           ext = s.substring(i+1).toLowerCase();
+	       }
+	       return ext;
+	   }
 
    
    /**
@@ -2224,7 +2274,7 @@ private class PDFFileFilter extends FileFilter {
        String extension = getExtension(f);
        if (extension != null) 
        	{
-       	if (extension.equals("pdf"))                  return true;
+       	if (extension.equals("txt"))                  return true;
        	else							              return false;
         }
 
@@ -2237,7 +2287,7 @@ private class PDFFileFilter extends FileFilter {
     * @return	A brief description of expected files for TRN.
     */
    public String getDescription() {
-       return "PDF file (.pdf)";
+       return "Text file (.text)";
    }
 }
 

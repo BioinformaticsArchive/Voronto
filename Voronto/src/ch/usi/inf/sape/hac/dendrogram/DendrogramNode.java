@@ -23,6 +23,8 @@ public interface DendrogramNode {
 	
 	public DendrogramNode getLeft();
 	public DendrogramNode getRight();
+	public void setLeft(DendrogramNode dn);
+	public void setRight(DendrogramNode dn);
 	public int getObservationCount();
 	
 }

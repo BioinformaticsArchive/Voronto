@@ -230,7 +230,7 @@ public class Line extends Line2D.Double{
 		//double ub=numb/den;//Not needed!
 		if(numa==0 && numb==0)	
 			{
-		//	System.err.println("Las líneas coinciden");
+			System.err.println("Parallel/coincident lines");
 			return null;
 			}
 		/*if((ua>=0 && ua<=1 && ub>=0 && ub<=1))

@@ -7,6 +7,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -108,7 +109,6 @@ public class AWPTesselation {
 	    	this.boundingPolygon.addPoint(boundingPolygon.xpoints[i], boundingPolygon.ypoints[i]);
 	    	}
 	    this.boundingPolygon.translate(-boundingBox.x, -boundingBox.y);
-	   // System.out.println("WEIGHTS: ");
 	    for(k=1;k<=numCells;k++)
 	    	{
 	        xpoint[k-1]=cells[k-1].position[0]-boundingBox.x;
@@ -217,7 +217,7 @@ public class AWPTesselation {
 	  public MPolygon[] computeEdges(){
 		  
 	//	  long t=System.currentTimeMillis();
-		  
+		  //-------------------- 1) Do Japanese Magic ----------------------------
 		  Vector<Vector<Line2D.Double>> vect=new Vector<Vector<Line2D.Double>>(numCells);
 		  for(int i=0;i<numCells;i++)	vect.add(new Vector<Line2D.Double>());
 		  Vector<Vector<Line2D.Double>> vect0=new Vector<Vector<Line2D.Double>>(numCells);
@@ -406,12 +406,12 @@ public class AWPTesselation {
 	  
 	 // boolean noSmallLines=false;
 	  
+	   //2) ----------------------- Build continuous polylines (one or two)---------------------
 	  for(int i=0;i<p.length;i++)
 	  	{
 		Vector<Line2D.Double> v=null;
 		v=vect.get(i);
 		
-		//1) Build continuous polylines (one or two)
 		ArrayList<Point2D.Double> points=new ArrayList<Point2D.Double>();
 		ArrayList<Point2D.Double> points2=new ArrayList<Point2D.Double>();
 		
@@ -425,7 +425,6 @@ public class AWPTesselation {
 		else
 			{//Form the continuous line
 			buildContinuousLine(points, v);
-				
 			//If the polygon is formed by two discontinuous polylines, such as "/ /" or "< /", or "< >", we must:
 			//a) form the second polyline. 
 			//b) Check which edges are closer to join into a single polyline
@@ -452,7 +451,7 @@ public class AWPTesselation {
 					}
 			}
 		else
-		//3) Clip polygon if hitting the boundaries
+		//3) -----------------------------Clip polygon if hitting the boundaries -------------------------
 			{
 			//buildPolygon(points);
 			
@@ -541,42 +540,124 @@ public class AWPTesselation {
 			}//if polygon has points
 		}//for each polygon
 	
-	  //Check possible ambiguous polygons
+	  //4) ------------------------ Check possible ambiguous polygons -----------------------
+	 /* int kk=0;
+	  int sumNull=0;
 	  for(i=0;i<numCells;i++)
-	  	if(p[i]==null)	
-	  		{
-	  		boolean isA=true;
-	  	  	for(int j=0;j<numCells;j++)
-	  	  		{
-	  			if(i!=j && p[j]!=null)	//if not itself or another ambiguous area.
-	  				{
-	  				Area aA=(Area)ambiguousAreas[i][0].clone();
-	  				aA.intersect(ambiguousAreas[j][0]);
-	  		//		System.out.println("Intersection of pA with "+j+" has area "+buildPolygonFromArea(aA).area());
-	  		  		Area aB=(Area)ambiguousAreas[i][1].clone();
-					aB.intersect(ambiguousAreas[j][0]);
-			//		System.out.println("Intersection of pB with "+j+" has area "+buildPolygonFromArea(aB).area());
-		  	
-					if(buildPolygonFromArea(aA).area()>0.1)//We allow a small intersection of 0.1 due to decimal adjustments...
-	  					{isA=false; break;}
-	  				}
-	  	  		}
-	  	  	if(!isA)
-	  	  		{
-	  	  		MPolygon pB=buildPolygonFromArea(ambiguousAreas[i][1]);
-	  	  		
-	    		
-				ambiguousAreas[i][0]=ambiguousAreas[i][1];
-	  	  		ambiguousAreas[i][1]=null;
-	  	  		p[i]=pB;
-	  	  		}
-	  	  	else
-	  	  		{
-	  	  		MPolygon pA=buildPolygonFromArea(ambiguousAreas[i][0]);
-	  	  		ambiguousAreas[i][1]=null;
-	  	  		p[i]=pA;
-	  	  		}
-	  	  	}
+		 if(p[i]==null)	sumNull++;
+	  if(sumNull==numCells)
+	  	{
+		//we have a  \  / ! / situation: all of the polygons are ambiguous!!
+		//1) Search for the smallest area (of the two possibles on each polygon) and assign it
+		MPolygon minPolygon=null;
+		Area minAreaObject=null;
+		double minArea=999999999;
+		int minIndex=-1;
+		for(i=0;i<numCells;i++)
+			{
+			for(int j=0;j<2;j++)
+				{
+				Area area=(Area)ambiguousAreas[i][j].clone();
+				MPolygon pol=buildPolygonFromArea(area);
+				if(pol.area()<minArea || minPolygon==null)
+					{minArea=pol.area(); minPolygon=pol; minIndex=i; minAreaObject=area;}
+				}
+			}
+		p[minIndex]=new MPolygon(minPolygon.getPoints());
+		
+		minArea=999999999;
+		minPolygon=null;
+		int minIndex2=-1;
+		int numResolved=1;
+		
+		//2) Search for the ambiguous polygon with the smallest intersection to the minPolygon
+		while(numResolved<numCells)
+			{
+			Area temp=null;
+			
+			for(i=0;i<numCells;i++)
+				{
+				if(p[i]==null)
+					{
+					Area aA=(Area)ambiguousAreas[i][0].clone();
+	  				MPolygon pA=buildPolygonFromArea(aA);
+	  				
+	  				Area aAi=(Area)ambiguousAreas[i][0].clone();
+	  				aAi.intersect(minAreaObject);
+	  				MPolygon pAi=buildPolygonFromArea(aAi);
+	  				if(pAi.area()>0.1 && pA.area()<minArea)		//if there's an intersection and it's the minimum polygon	
+	  					{
+	  					temp=(Area)aA.clone();
+	  					aA.subtract(minAreaObject); 
+	  					minPolygon=buildPolygonFromArea(aA);
+	  					minIndex2=i;
+	  					}
+					
+	  				Area aB=(Area)ambiguousAreas[i][1].clone();
+					MPolygon pB=buildPolygonFromArea(aB);
+					
+					Area aBi=(Area)ambiguousAreas[i][1].clone();
+					aBi.intersect(minAreaObject);
+					MPolygon pBi=buildPolygonFromArea(aB);
+					if(pBi.area()>0.1 && pB.area()<minArea)	
+						{
+						temp=(Area)aB.clone();
+	  					aB.subtract(minAreaObject); 
+						minPolygon=buildPolygonFromArea(aB); 
+						minIndex2=i;
+						}
+					}
+				}
+			if(minIndex2!=-1)
+				{
+				p[minIndex2]=new MPolygon(minPolygon.getPoints());
+				minAreaObject=(Area)temp.clone();
+				numResolved++;
+				}
+			}
+		}
+	  else*/
+		  {
+		  for(i=0;i<numCells;i++)
+		  	if(p[i]==null)	
+		  		{
+		  		boolean isA=true;
+		  		for(int j=0;j<numCells;j++)
+		  	  		{
+		  			if(i!=j && p[j]!=null)	//if not itself or another ambiguous area.
+		  				{
+		  				Area aA=(Area)ambiguousAreas[i][0].clone();
+		  				aA.intersect(ambiguousAreas[j][0]);
+		  		//		System.out.println("Intersection of pA with "+j+" has area "+buildPolygonFromArea(aA).area());
+		  		  		Area aB=(Area)ambiguousAreas[i][1].clone();
+						aB.intersect(ambiguousAreas[j][0]);
+				//		System.out.println("Intersection of pB with "+j+" has area "+buildPolygonFromArea(aB).area());
+			  	
+						if(buildPolygonFromArea(aA).area()>0.1)//We allow a small intersection of 0.1 due to decimal adjustments...
+		  					{isA=false; break;}
+		  				}
+		  			//else sumNull++;
+		  	  		}
+		  	  //	if(sumNull<numCells-1)
+			  	  	{
+			  	  	if(!isA)
+			  	  		{
+			  	  		MPolygon pB=buildPolygonFromArea(ambiguousAreas[i][1]);
+			  	  		
+			    		
+						ambiguousAreas[i][0]=ambiguousAreas[i][1];
+			  	  		ambiguousAreas[i][1]=null;
+			  	  		p[i]=pB;
+			  	  		}
+			  	  	else
+			  	  		{
+			  	  		MPolygon pA=buildPolygonFromArea(ambiguousAreas[i][0]);
+			  	  		ambiguousAreas[i][1]=null;
+			  	  		p[i]=pA;
+			  	  		}
+			  	  	}
+		  	  	}
+		  }
 	//  System.out.println("Time in retrieving polygons and clipping "+(System.currentTimeMillis()-t));
 	  return p;
 	  }
@@ -677,74 +758,90 @@ public class AWPTesselation {
 	   */
 	  private void joinPolylines(ArrayList<Point2D.Double> points, ArrayList<Point2D.Double> points2)
 	  	{
-	    Point2D.Double p0=points.get(0);
-		Point2D.Double p1=points.get(1);
-		Point2D.Double pf0=points.get(points.size()-1);
-		Point2D.Double pf1=points.get(points.size()-2);
+	    Point2D.Double p1_0=points.get(0);
+		Point2D.Double p1_1=points.get(1);
+		Point2D.Double p1_f0=points.get(points.size()-1);
+		Point2D.Double p1_f1=points.get(points.size()-2);
 		
 		Point2D.Double p2_0=points2.get(0);
 		Point2D.Double p2_1=points2.get(1);
 		Point2D.Double p2_f0=points2.get(points2.size()-1);
 		Point2D.Double p2_f1=points2.get(points2.size()-2);
 		
-		double dist=p0.distance(p2_0);
-		Line l1=new Line(p1, p0);
+		//initial vs initial
+		double dist=p1_0.distance(p2_0);	
+		Line l1=new Line(p1_1, p1_0);
 		Line l2=new Line(p2_1, p2_0);
-		int pos=0;
-		int pos2=0;
+		int pos=0;//edge closer to the other line (l1)
+		int pos2=0;//point closer to the other line (l2)
 		
-		if(p0.distance(p2_f0)<dist)
+		if(p1_0.distance(p2_f0)<dist)
 			{
-			dist=p0.distance(p2_f0);
-			l1=new Line(p1, p0);
+			dist=p1_0.distance(p2_f0);
+			l1=new Line(p1_1, p1_0);
 			l2=new Line(p2_f1, p2_f0);
+			pos=0;
 			pos2=points2.size()-1;
 			}
-		if(pf0.distance(p2_0)<dist)
+		if(p1_f0.distance(p2_0)<dist)
 			{
-			dist=pf0.distance(p2_0);
-			l1=new Line(pf1, pf0);
+			dist=p1_f0.distance(p2_0);
+			l1=new Line(p1_f1, p1_f0);
 			l2=new Line(p2_1, p2_0);
 			pos=points.size()-1;
+			pos2=0;
 			}
-		if(pf0.distance(p2_f0)<dist)
+		if(p1_f0.distance(p2_f0)<dist)
 			{
-			dist=pf0.distance(p2_f0);
-			l1=new Line(pf1, pf0);
+			dist=p1_f0.distance(p2_f0);
+			l1=new Line(p1_f1, p1_f0);
 			l2=new Line(p2_f1, p2_f0);
 			pos=points.size()-1;
 			pos2=points2.size()-1;
 			}
 		
 		//need to grow here so it will find an intersection
-		Point2D.Double pg1=l1.getProlongationPoint(MAX_POINT);
-		l1.x2=pg1.x;
-		l1.y2=pg1.y;
-		Point2D.Double pg2=l2.getProlongationPoint(MAX_POINT);
-		l2.x2=pg2.x;
-		l2.y2=pg2.y;
+		Point2D.Double pg11=l1.getProlongationPoint(MAX_POINT);
+		l1.x2=pg11.x;
+		l1.y2=pg11.y;
+		Point2D.Double pg21=l2.getProlongationPoint(MAX_POINT);
+		l2.x2=pg21.x;
+		l2.y2=pg21.y;
 		
-		//System.out.println("Searching for the intersection of polylines");
-		
-		
+		Point2D.Double pi=null;
 		if(Line.linesIntersect(l1.x1, l1.y1, l1.x2, l1.y2, l2.x1, l2.y1, l2.x2, l2.y2))
 			{
-			Point2D.Double pi=l2.intersection(l1);
+			pi=l2.intersection(l1);
 			if(pi!=null)//if l1 and l2 are not parallel or the same
 				{
+				points.remove(pos);
+				points.add(pi);
+				points2.remove(pos2);
+				if(pos2!=0)
+					Collections.reverse(points2);
+				for(int i=0;i<points2.size();i++)
+					points.add(points2.get(i));
+				
+				
+				}
+			else	// The |Ê| case (it happens!) --> must select as joining point the middle on the infinite
+				System.err.println("Insterset but parallel?!");
+			}
+		else
+			{
+				pi=l1.getPerpendicularPoint(l1.x2, l1.y2, 100);
 				points.set(pos, pi);
 				points2.remove(pos2);
 				if(pos2!=0)
 					Collections.reverse(points2);
 				for(int i=0;i<points2.size();i++)
 					points.add(pos, points2.get(i));
-				
-				}
-			//else
-			//	System.err.println("Cannot join polylines");
+				//System.err.println("Cannot join polylines");
 			}
+		return;
 		}
-	  
+	
+	
 	  /**
 	   * Searches for elements to add to the line formed by points (a vector with 2 points), from the array of lines in v
 	   */

@@ -36,6 +36,26 @@ public class ExpressionSubset implements Experiment, DissimilarityMeasure{
 	public int getNumberOfObservations() {
 		return expressions.size();
 	}
+	
+	public ArrayList<Float> getExpression(ArrayList<Integer> ids)
+		{
+		ArrayList<String> name=new ArrayList<String>();
+		ArrayList<Float> mean=new ArrayList<Float>();
+		
+		for(int id:ids)
+			{
+			ArrayList<Float> prof=((ExpressionSubset)this).getExpressions().get(names[id]);
+			if(mean.size()==0)	mean.addAll(prof);
+			else
+				{
+				for(int i=0;i<mean.size();i++)
+					mean.set(i,mean.get(i)+prof.get(i));
+				}
+			}
+		for(int i=0;i<mean.size();i++)
+			mean.set(i, mean.get(i)/ids.size());
+		return mean;
+		}
 
 	@Override
 	/**
@@ -56,11 +76,53 @@ public class ExpressionSubset implements Experiment, DissimilarityMeasure{
 		
  		for(int i=0;i<profile1.size();i++)
 			comp+=(profile1.get(i)-profile2.get(i))*(profile1.get(i)-profile2.get(i));
+ 		//System.out.println("d("+names[observation1]+", "+names[observation2]+") = "+Math.sqrt(comp));
  		return Math.sqrt(comp);}
 		catch(Exception e)
 		{
 			e.printStackTrace(); return -1;
 		}
  		}
+	
+	public double computeDissimilarity(Experiment experiment, ArrayList<Integer> observation1,
+			ArrayList<Integer> observation2) {
+		try{double comp=0;
+		
+		ArrayList<Float> profile1=null, profile2=null;
+		profile1=((ExpressionSubset)experiment).getExpression(observation1);
+		profile2=((ExpressionSubset)experiment).getExpression(observation2);
+		
+		
+ 		for(int i=0;i<profile1.size();i++)
+			comp+=(profile1.get(i)-profile2.get(i))*(profile1.get(i)-profile2.get(i));
+ 		return Math.sqrt(comp);}
+		catch(Exception e)
+		{
+			e.printStackTrace(); return -1;
+		}
+ 		}
+
+	public double computeDissimilarity(Experiment experiment, ArrayList<Integer> observation1,
+			int observation2) {
+		try{
+		ArrayList<Float> profile1=null, profile2=null;
+		profile1=((ExpressionSubset)experiment).getExpression(observation1);
+		profile2=((ExpressionSubset)experiment).getExpressions().get(names[observation2]);
+		
+		return computeDissimilarity(profile1, profile2);
+		}catch(Exception e)
+			{
+			e.printStackTrace(); return -1;
+			}
+ 		}
+	
+	public double computeDissimilarity(ArrayList<Float> profile1, ArrayList<Float> profile2)
+		{
+		double comp=0;
+		for(int i=0;i<profile1.size();i++)
+			comp+=(profile1.get(i)-profile2.get(i))*(profile1.get(i)-profile2.get(i));
+ 		
+ 		return Math.sqrt(comp);
+		}
 
 }

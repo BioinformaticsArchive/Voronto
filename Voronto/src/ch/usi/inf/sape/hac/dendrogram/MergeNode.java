@@ -10,6 +10,8 @@
  */
 package ch.usi.inf.sape.hac.dendrogram;
 
+import java.util.ArrayList;
+
 
 /**
  * A MergeNode represents an interior node in a Dendrogram.
@@ -19,9 +21,12 @@ package ch.usi.inf.sape.hac.dendrogram;
  */
 public final class MergeNode implements DendrogramNode {
 	
-	private final DendrogramNode left;
-	private final DendrogramNode right;
+	//private final DendrogramNode left;
+	//private final DendrogramNode right;
+	private DendrogramNode left;
+	private DendrogramNode right;
 	private final double dissimilarity;
+	//private final ArrayList<Float> profile;
 	private final int observationCount;
 	
 	
@@ -29,6 +34,7 @@ public final class MergeNode implements DendrogramNode {
 		this.left = left;
 		this.right = right;
 		this.dissimilarity = dissimilarity;
+		//this.profile=null;
 		observationCount = left.getObservationCount()+right.getObservationCount();
 	}
 	
@@ -36,13 +42,22 @@ public final class MergeNode implements DendrogramNode {
 		return observationCount;
 	}
 	
-	public final DendrogramNode getLeft() {
+	public  DendrogramNode getLeft() {
 		return left;
 	}
 	
-	public final DendrogramNode getRight() {
+	public  DendrogramNode getRight() {
 		return right;
 	}
+	
+	public void setLeft(DendrogramNode dn) {
+		left=dn;
+	}
+	
+	public void setRight(DendrogramNode dn) {
+		right=dn;
+	}
+	
 	
 	public final double getDissimilarity() {
 		return dissimilarity;

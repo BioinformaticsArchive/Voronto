@@ -113,8 +113,9 @@ public final class HierarchicalAgglomerativeClusterer {
                 dissimilarityMatrix[k][j] = Double.POSITIVE_INFINITY;
             }
             
-            // update clustering
+            // update clustering 
             clusteringBuilder.merge(i, j, d);
+           
         }
     }
     

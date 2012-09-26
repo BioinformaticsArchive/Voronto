@@ -34,6 +34,9 @@ public final class ObservationNode implements DendrogramNode {
 		return null;
 	}
 	
+	public void setLeft(DendrogramNode dn){}
+	public void setRight(DendrogramNode dn){}
+	
 	public int getObservationCount() {
 		return 1;
 	}

@@ -149,12 +149,6 @@ public class BernhardtTessellation {
 				break;
 			}
 		c.weight=c.numLeaves;	//In general, the term has a size proportional to the number of genes annotated with it
-		//---
-		//if(c.numLeaves==0)	c.weight=0;
-		//else				c.weight=(float)Math.log(c.numLeaves+1);	//In general, the term has a size proportional to the number of genes annotated with it
-		//---
-		
-		//if(mode==1)	System.out.println("Creating cell "+term.name+" at level "+level+ " with weight "+c.weight);
 		numLeaves++;
 		return c;
 		}
@@ -267,8 +261,9 @@ public class BernhardtTessellation {
 		Cell[] cellsAnt=new Cell[currentCells.length];
 		for(int i=0;i<cellsAnt.length;i++)		cellsAnt[i]=new Cell(currentCells[i]);	//deep copy
 			
-		if(mode==1)		if(currentName.contains("aging"))	
-			System.out.println("tal");
+		if(mode==1)		
+			if(currentName.contains("Transport and Catabolism"))	
+				System.out.println("tal");
 				
 		anyoneNeedsReweight=true;
 		//0) Initial placement: trying to optimize space based on weights
@@ -375,7 +370,8 @@ public class BernhardtTessellation {
 		zeroAreas=false;
 		allZeroAreas=false;
 		int numZeros=0;
-		
+		//if(currentName.equals("Transport and Catabolism"))
+		//	System.out.println("Here"+contawp);
 		AWPTesselation v=new AWPTesselation(currentCells, boundingPolygon);
 		
 		MPolygon[] p=v.computeEdges();
@@ -385,12 +381,21 @@ public class BernhardtTessellation {
 			tessellationFailed=true;
 			return;
 			}
-		for(MPolygon pp:p)	
+		for(MPolygon pp:p)
+			if(pp==null)
+				{
+				p=null;
+				tessellationFailed=true;
+				return;
+				}
+		for(MPolygon pp:p)
+			{
 			if(pp.getPoints()==null || pp.getPoints().size()==0)
 				{
 				zeroAreas=true; //return;
 				numZeros++;
 				}
+			}
 		if(numZeros==p.length)	allZeroAreas=true;
 			
 		for(int i=0;i<p.length;i++)

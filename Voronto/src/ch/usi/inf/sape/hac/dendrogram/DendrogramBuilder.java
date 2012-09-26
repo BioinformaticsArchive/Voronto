@@ -10,6 +10,8 @@
  */
 package ch.usi.inf.sape.hac.dendrogram;
 
+import java.util.ArrayList;
+
 import ch.usi.inf.sape.hac.ClusteringBuilder;
 
 
@@ -37,6 +39,12 @@ public final class DendrogramBuilder implements ClusteringBuilder {
         nodes[i] = node;
         lastMergeNode = node;
     }
+    
+    /*public final void merge(final int i, final int j, final double dissimilarity, ArrayList<Float> profile) {
+        final MergeNode node = new MergeNode(nodes[i], nodes[j], dissimilarity, profile);
+        nodes[i] = node;
+        lastMergeNode = node;
+    }*/
 
     public final Dendrogram getDendrogram() {
         if (nodes.length==1) {

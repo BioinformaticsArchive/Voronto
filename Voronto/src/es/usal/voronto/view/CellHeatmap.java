@@ -2,7 +2,9 @@ package es.usal.voronto.view;
 
 import java.awt.Color;
 import java.awt.Toolkit;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -11,6 +13,8 @@ import javax.swing.JOptionPane;
 
 import ch.usi.inf.sape.hac.HierarchicalAgglomerativeClusterer;
 import ch.usi.inf.sape.hac.agglomeration.AgglomerationMethod;
+import ch.usi.inf.sape.hac.agglomeration.CentroidLinkage;
+import ch.usi.inf.sape.hac.agglomeration.CompleteLinkage;
 import ch.usi.inf.sape.hac.agglomeration.WeightedAverageLinkage;
 import ch.usi.inf.sape.hac.dendrogram.Dendrogram;
 import ch.usi.inf.sape.hac.dendrogram.DendrogramBuilder;
@@ -19,8 +23,10 @@ import ch.usi.inf.sape.hac.dendrogram.ObservationNode;
 import ch.usi.inf.sape.hac.experiment.DissimilarityMeasure;
 
 import es.usal.voronto.model.clustering.ExpressionSubset;
+import es.usal.voronto.model.expression.ExpressionData;
 import es.usal.voronto.model.voronoi.Cell;
 import es.usal.voronto.view.VoronoiVisualization.ImageFileFilter;
+import es.usal.voronto.view.VoronoiVisualization.TextFileFilter;
 import processing.core.PApplet;
 import processing.core.PFont;
 import processing.core.PGraphics;
@@ -56,6 +62,7 @@ public class CellHeatmap extends PApplet
 	
 	int nameType=1;
 	private int scaleFactor=1;
+	private ExpressionSubset subset;
 	
 	
 	public CellHeatmap(Cell c, PFont font, VoronoiVisualization v)
@@ -111,18 +118,147 @@ public class CellHeatmap extends PApplet
 		noLoop();
 	 	}
 
+	/* This method is not considering which side is better to add first in the 
+	 * conext of other branches, it always goes first for left, then for right*/
 	public void retrieveOrder(ArrayList<Integer> order, DendrogramNode dn)
 		{
 		if(dn.getLeft().getClass().toString().contains("ObservationNode"))
 			order.add(((ObservationNode)dn.getLeft()).getObservation());
 		else
 			retrieveOrder(order, dn.getLeft());
+		
 		if(dn.getRight().getClass().toString().contains("ObservationNode"))
 			order.add(((ObservationNode)dn.getRight()).getObservation());
 		else
 			retrieveOrder(order, dn.getRight());
 		}
 	
+	public void sortDendrogram(DendrogramNode dn)
+		{
+		if(dn.getClass().toString().contains("ObservationNode"))	
+			return;
+		//If both are leaf nodes, nothing to do
+		if(dn.getLeft().getClass().toString().contains("ObservationNode") && dn.getRight().getClass().toString().contains("ObservationNode"))
+			return;
+		else
+			{
+			
+			//Check order of the two left branches depending on the right node
+			if(!dn.getLeft().getClass().toString().contains("ObervationNode"))
+				{
+				if(dn.getLeft().getLeft()!=null && dn.getLeft().getRight()!=null)
+					{
+					ArrayList<Float> rp=getAverageProfile(dn.getRight());
+					ArrayList<Float> llp=getAverageProfile(dn.getLeft().getLeft());
+					ArrayList<Float> lrp=getAverageProfile(dn.getLeft().getRight());
+					double dll=subset.computeDissimilarity(rp, llp);
+					double dlr=subset.computeDissimilarity(rp, lrp);
+					if(dll<dlr)	//switch the branches
+						{
+						DendrogramNode temp=dn.getLeft().getRight();
+						dn.getLeft().setRight(dn.getLeft().getLeft());
+						dn.getLeft().setLeft(temp);
+						}
+					sortDendrogram(dn.getLeft());
+					if(!dn.getRight().getClass().toString().contains("ObervationNode"))
+						sortDendrogram(dn.getRight());
+					}
+				}
+			//Check order of the two right branches depending on left node
+			else
+				{
+				ArrayList<Float> lp=getAverageProfile(dn.getLeft());
+				ArrayList<Float> rlp=getAverageProfile(dn.getRight().getLeft());
+				ArrayList<Float> rrp=getAverageProfile(dn.getRight().getRight());
+				double drl=subset.computeDissimilarity(lp, rlp);
+				double drr=subset.computeDissimilarity(lp, rrp);
+				if(drr<drl)	//switch the branches
+					{
+					DendrogramNode temp=dn.getRight().getLeft();
+					dn.getRight().setLeft(dn.getRight().getRight());
+					dn.getRight().setRight(temp);
+					}
+				sortDendrogram(dn.getRight());
+				}
+			}
+		}
+
+	public ArrayList<Float> getAverageProfile(DendrogramNode dn)
+		{
+		String[] names=cell.term.geneExs.keySet().toArray(new String[0]);
+		
+		if(dn.getClass().toString().contains("ObservationNode"))
+			return cell.term.geneExs.get(names[((ObservationNode)dn).getObservation()]);
+		else
+			{
+			ArrayList<Float> lp=getAverageProfile(dn.getRight());
+			ArrayList<Float> rp=getAverageProfile(dn.getLeft());
+			ArrayList<Float> ap=new ArrayList<Float>();
+			for(int i=0;i<lp.size();i++)
+				ap.add((float)((lp.get(i)+rp.get(i))/2.0));
+			return ap;
+			}
+		}
+		
+	/*
+	public ArrayList<Integer> retrieveOrder(ArrayList<Integer> order, DendrogramNode dn, ExpressionSubset subset)
+		{
+		ArrayList<Integer> membersL=new ArrayList<Integer>();
+		ArrayList<Integer> membersR=new ArrayList<Integer>();
+		ArrayList<Integer> members=new ArrayList<Integer>();
+		if(dn.getLeft().getClass().toString().contains("ObservationNode"))
+			{
+			//order.add(((ObservationNode)dn.getLeft()).getObservation());
+			membersL.add(((ObservationNode)dn.getLeft()).getObservation());
+			}
+		else
+			membersL.addAll(retrieveOrder(order, dn.getLeft(), subset));
+		
+		if(dn.getRight().getClass().toString().contains("ObservationNode"))
+			{
+			//order.add(((ObservationNode)dn.getRight()).getObservation());
+			membersR.add(((ObservationNode)dn.getRight()).getObservation());
+			}
+		else
+			membersR.addAll(retrieveOrder(order, dn.getRight(), subset));
+		
+		if((membersR.size()==1 && membersL.size()==1) || membersR.size()>2 || membersL.size()>2)	
+			{
+			members.addAll(membersL);
+			members.addAll(membersR);
+			}
+		else
+			{
+			if(membersL.size()==2)
+				{
+				double d0=subset.computeDissimilarity(subset, membersR, membersL.get(0));
+				double d1=subset.computeDissimilarity(subset, membersR, membersL.get(1));
+				if(d0<d1)
+					{
+					members.add(membersL.get(1));
+					members.add(membersL.get(0));
+					}
+				else
+					members.addAll(membersL);
+				members.addAll(membersR);
+				}
+			else
+				{
+				double d0=subset.computeDissimilarity(subset, membersL, membersR.get(0));
+				double d1=subset.computeDissimilarity(subset, membersL, membersR.get(1));
+				members.addAll(membersL);
+				if(d1<d0)
+					{
+					members.add(membersR.get(1));
+					members.add(membersR.get(0));
+					}
+				else
+					members.addAll(membersR);
+				}
+			}
+		return members;
+		}
+	*/
 	public void computeOrder()
 		{
 		String[] names=cell.term.geneExs.keySet().toArray(new String[0]);
@@ -130,17 +266,20 @@ public class CellHeatmap extends PApplet
 		
 		if(names.length>1)
 			{
-			ExpressionSubset subset= new ExpressionSubset(cell.term.geneExs, names);
+			subset= new ExpressionSubset(cell.term.geneExs, names);
 			DissimilarityMeasure dissimilarityMeasure = (DissimilarityMeasure)subset;
-			//AgglomerationMethod agglomerationMethod = new CentroidLinkage();
-			AgglomerationMethod agglomerationMethod = new WeightedAverageLinkage();
+			AgglomerationMethod agglomerationMethod = new CentroidLinkage();
+			//AgglomerationMethod agglomerationMethod = new WeightedAverageLinkage();
 			//AgglomerationMethod agglomerationMethod = new CompleteLinkage();
 			DendrogramBuilder dendrogramBuilder = new DendrogramBuilder(subset.getNumberOfObservations());
 			HierarchicalAgglomerativeClusterer clusterer = new HierarchicalAgglomerativeClusterer(subset, dissimilarityMeasure, agglomerationMethod);
 			clusterer.cluster(dendrogramBuilder);
 			Dendrogram dendrogram = dendrogramBuilder.getDendrogram();
 			
+			//dendrogram.dump();
+			
 			DendrogramNode dn=dendrogram.getRoot();
+			sortDendrogram(dn);
 			retrieveOrder(order, dn);
 			}
 		else
@@ -148,6 +287,7 @@ public class CellHeatmap extends PApplet
 			order.add(0);
 			}
 		}
+	
 	
 	public void mouseMoved() 
 		{
@@ -173,14 +313,20 @@ public class CellHeatmap extends PApplet
 	
 	public void keyReleased()
 		{
+		JFileChooser selecFile=null;
+		int returnval=-333;
+		
 		switch(key)
 			{
 			case 'n'://change gene ids shown on cell heatmap
 				nameType=(nameType+1)%3;
 				redraw();
 				break;
-			case 'p':
-				JFileChooser selecFile = new JFileChooser();
+			case 'e':	//export gene ids 
+				vv.export(cell.term);
+				break;
+			case 'p':	//print hi-res image
+				selecFile = new JFileChooser();
 				selecFile.addChoosableFileFilter(vv.new ImageFileFilter());
 				
 				if(vv.expData!=null)	
@@ -191,7 +337,7 @@ public class CellHeatmap extends PApplet
 				else
 					selecFile.setSelectedFile(new File(cell.term.name.trim()+".png"));
 				
-				int returnval = selecFile.showSaveDialog(this);
+				returnval = selecFile.showSaveDialog(this);
 
 				if(returnval==JFileChooser.APPROVE_OPTION)
 					{
