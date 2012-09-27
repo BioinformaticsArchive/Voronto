@@ -12,6 +12,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -839,10 +840,14 @@ public void drawProfilePlot(Cell c)
  */
 public void drawSkewedScale()
 	{
+	textFont(font, 12);
+	
+	DecimalFormat df=new DecimalFormat("#.##");
+	textAlign(CENTER, TOP);
 	int sw=150;
 	int sh=10;
 	int x=width-sw-15;
-	int y=(int)(END_Y+sh*0.5);
+	int y=(int)(END_Y+sh*1.7);
 	scaleBox=new Rectangle2D.Float(x, y, sw, sh);
 	strokeWeight(1);
 	
@@ -868,7 +873,38 @@ public void drawSkewedScale()
 	
 	double jumpBelow=Math.ceil(255/(255*mid/sw))+0;
 	double jumpAbove=Math.ceil(255/Math.abs(255*mid/sw-255))+0;
-			
+	
+	//Draw legend
+	stroke(200,200,200);
+	fill(200);
+	
+	line(x,y,x,y-3);
+	if(whiteValue==MEAN)	
+		{
+		//text("min", x, y+sh+3);
+		text(df.format(expData.min),  x, y-12);
+		}
+	else if(whiteValue==MEDIAN)	text("0", x, y-12);
+	
+	line((int)(x+mid),y+sh,(int)(x+mid),y-3);
+	if(whiteValue==MEAN)		
+		{
+		//text("avg", (int)(x+mid), y+sh+3);
+		text(df.format(expData.average), (int)(x+mid), y-12);
+		}
+	else if(whiteValue==MEDIAN)	text("50", (int)(x+mid), y-12);
+	
+	line(x+sw-1,y+sh,x+sw-1,y-3);
+	if(whiteValue==MEAN)		
+		{
+		//text("max", x+sw-1, y+sh+3);
+		text(df.format(expData.max),  x+sw-1, y-12);
+		}
+	else if(whiteValue==MEDIAN)	text("100", x+sw-1, y-12);
+	
+	line((int)(x+mid*0.5),y+sh,(int)(x+mid*0.5),y-2);
+	line((int)(x+mid*2),y+sh,(int)(x+mid*2),y-2);
+				
 	for(int i=0;i<sw;i++)
 		{
 		int h=0;
@@ -902,7 +938,15 @@ public void drawSkewedScale()
 		if(drawReference && !refDrawn)
 			{
 			stroke(0);
+			fill(0);
 			line(x+i, y-2, x+i, y+sh+2);
+			fill(255,200);
+			noStroke();
+			rect(x+i-10, y+sh, 20,15);
+			fill(0);
+			stroke(0);
+			if(whiteValue==MEAN)		text(df.format(hc.expressionLevel.get(selectedCol)),  x+i, y+sh+3);
+			else if(whiteValue==MEDIAN)	text(df.format(expData.getQuantile(hc.expressionLevel.get(selectedCol), selectedCol)),  x+i, y+sh+3);
 			refDrawn=true;
 			}
 		}
@@ -910,30 +954,8 @@ public void drawSkewedScale()
 	noFill();
 	rect(x-1,y-1,sw+1,sh+1);
 	
-	//Draw legend
-	textAlign(CENTER, TOP);
-	fill(200);
-	line(x,y+sh,x,y+sh+2);
-	if(whiteValue==MEAN)	text("min", x, y+sh+3);
-	else if(whiteValue==MEDIAN)	text("0", x, y+sh+3);
-	line((int)(x+mid),y+sh,(int)(x+mid),y+sh+2);
-	if(whiteValue==MEAN)		text("avg", (int)(x+mid), y+sh+3);
-	else if(whiteValue==MEDIAN)	text("50", (int)(x+mid), y+sh+3);
+	textFont(font, 14);
 	
-	line(x+sw-1,y+sh,x+sw-1,y+sh+2);
-	if(whiteValue==MEAN)		text("max", x+sw-1, y+sh+3);
-	else if(whiteValue==MEDIAN)	text("100", x+sw-1, y+sh+3);
-	
-	line((int)(x+mid*0.5),y+sh,(int)(x+mid*0.5),y+sh+1);
-	line((int)(x+mid*2),y+sh,(int)(x+mid*2),y+sh+1);
-	/*line((int)(x+sw*0.1),y+sh,(int)(x+sw*0.1),y+sh+1);
-	line((int)(x+sw*0.2),y+sh,(int)(x+sw*0.2),y+sh+1);
-	line((int)(x+sw*0.3),y+sh,(int)(x+sw*0.3),y+sh+1);
-	line((int)(x+sw*0.4),y+sh,(int)(x+sw*0.4),y+sh+1);
-	line((int)(x+sw*0.6),y+sh,(int)(x+sw*0.6),y+sh+1);
-	line((int)(x+sw*0.7),y+sh,(int)(x+sw*0.7),y+sh+1);
-	line((int)(x+sw*0.8),y+sh,(int)(x+sw*0.8),y+sh+1);
-	line((int)(x+sw*0.9),y+sh,(int)(x+sw*0.9),y+sh+1);*/
 	noStroke();
 	}
 
@@ -1012,7 +1034,12 @@ public void drawScale()
 	if(whiteValue==MEAN)	text("min", x, y+sh+3);
 	else if(whiteValue==MEDIAN)	text("0", x, y+sh+3);
 	line((int)(x+sw*0.5),y+sh,(int)(x+sw*0.5),y+sh+2);
-	if(whiteValue==MEAN)		text("avg", (int)(x+sw*0.5), y+sh+3);
+	if(whiteValue==MEAN)		
+		{
+		text("avg", (int)(x+sw*0.5), y+sh+3);
+		text("("+expData.average+")", (int)(x+sw*0.5), y+sh+6);
+		
+		}
 	else if(whiteValue==MEDIAN)	text("50", (int)(x+sw*0.5), y+sh+3);
 	
 	line(x+sw-1,y+sh,x+sw-1,y+sh+2);
@@ -1730,10 +1757,10 @@ public void keyReleased()
 		{
 		case KeyEvent.VK_ESCAPE:
 			break;
-		case 's':
+		/*case 's':
 			skewed=!skewed;
 			break;
-		/*case 's'://change scale
+		case 's'://change scale
 			//SCALE_MODE=(SCALE_MODE+1)%3;
 			SCALE_MODE=(SCALE_MODE+1)%2;	//no ontology mode
 			System.out.println("SCALE_MODE: "+SCALE_MODE);
