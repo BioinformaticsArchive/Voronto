@@ -1631,22 +1631,28 @@ public void export(OntologyTerm term)
 		if(returnval==JFileChooser.APPROVE_OPTION)
 			{
 			BufferedWriter bw=new BufferedWriter(new FileWriter(selecFile.getSelectedFile()));
-			bw.write("entrezgene\tensembl_gene_id\texternal_gene_id");
+			if(expData.ensembl_gene_idHash==null)
+				bw.write(expData.chip);
+			else
+				bw.write("entrezgene\tensembl_gene_id\texternal_gene_id");
 			for(String c:expData.conditionNames)
 				bw.write("\t"+c);
 			
 			bw.newLine();
 			for(String id:term.geneExs.keySet())
 				{
-				String entrezgene=expData.getSynonym(id.toLowerCase(), ExpressionData.ENTREZ);
-				String ensembl_gene_id=expData.getSynonym(id.toLowerCase(), ExpressionData.ENSEMBL);
-				String external_gene_id=expData.getSynonym(id.toLowerCase(), ExpressionData.SYMBOL);
-				
-				bw.write(entrezgene+"\t"+ensembl_gene_id+"\t"+external_gene_id);
-				for(Float ex:term.geneExs.get(id))
+				if(expData.ensembl_gene_idHash!=null)
 					{
-					bw.write("\t"+ex);
+					String entrezgene=expData.getSynonym(id.toLowerCase(), ExpressionData.ENTREZ);
+					String ensembl_gene_id=expData.getSynonym(id.toLowerCase(), ExpressionData.ENSEMBL);
+					String external_gene_id=expData.getSynonym(id.toLowerCase(), ExpressionData.SYMBOL);
+					
+					bw.write(entrezgene+"\t"+ensembl_gene_id+"\t"+external_gene_id);
 					}
+				else
+					bw.write(id);
+				for(Float ex:term.geneExs.get(id))
+					bw.write("\t"+ex);
 				bw.newLine();
 				}
 			bw.close();
