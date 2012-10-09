@@ -1418,9 +1418,13 @@ public void mouseReleased() {
 								String[] element_id_list=c.term.geneExs.keySet().toArray(new String[0]);
 								
 								//The natural KEGG id is entrez, except for sce (so far)
-								HashMap<String,String> geneMap=expData.invertedHash(expData.entrezgeneHash);
-								if(expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo"))
-									geneMap=expData.invertedHash(expData.ensembl_gene_idHash);
+								HashMap<String,String> geneMap=null;
+								if(expData.entrezgeneHash!=null)
+									{
+									geneMap=expData.invertedHash(expData.entrezgeneHash);
+									if(expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo"))
+										geneMap=expData.invertedHash(expData.ensembl_gene_idHash);
+									}
 									
 								
 								ArrayList<String> fg=new ArrayList<String>();
@@ -1440,11 +1444,10 @@ public void mouseReleased() {
 											int pos=-1;
 											
 											//if the chip ids match the natural KEGG ids (entrez except for sce), direct mapping
-											if((expData.chip.equals("entrezgene") && !(expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo"))) || (expData.chip.equals("ensembl_gene_id") && (expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo"))) )
+											if(geneMap==null || ((expData.chip.equals("entrezgene") && !(expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo"))) || (expData.chip.equals("ensembl_gene_id") && (expData.organismKegg.equals("sce") || expData.organismKegg.equals("spo")))) )
 												pos=Arrays.binarySearch(element_id_list, g.replace("ko:", ""));
 											else
- 											//if(!expData.chip.equals("entrezgene") && !(expData.chip.equals("ensembl_gene_id") && expData.organismKegg.equals("sce")))
-												{
+ 												{
 												String syn=geneMap.get(g.replace("ko:", ""));
 												if(syn!=null)
 													pos=Arrays.binarySearch(element_id_list, syn);
