@@ -143,7 +143,8 @@ public class Cell implements Cloneable {
 		{
 		int cont=0;
 		ArrayList<String> spcids=new ArrayList<String>();
-		for(String id:term.geneIds)		if(id.startsWith(md.organismKegg))	spcids.add(id.toLowerCase());
+		for(String id:term.geneIds)		
+			if(id.startsWith(md.organismKegg))	spcids.add(id.toLowerCase());
 		for(String id:spcids)
 			{
 			if((md.koidList.indexOf(id))>=0)

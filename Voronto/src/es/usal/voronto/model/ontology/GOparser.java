@@ -41,7 +41,8 @@ public class GOparser {
 			if(s.contains("gene_association.goa"))
 				GOparser.map(s, "/Users/rodri/desktop/goa/mini/go-"+convert2(s.substring(s.indexOf(".goa")+5))+"_gene_ensembl.map");
 			}*/
-		GOparser.map("/Users/rodri/Desktop/goa/gene_association.GeneDB_Spombe.genedb_spombe", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/go-spombe_gene_ensembl.map");
+		//GOparser.map("/Users/rodri/Desktop/goa/gene_association.GeneDB_Spombe.genedb_spombe", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/go-spombe_gene_ensembl.map");
+		GOparser.map("/Users/rodri/Desktop/goa/gene_association.cgd", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/go-calbicans_gene_ensembl.map");
 		//GOparser.map("/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/data/calbicans/annotations/gene_association.cgd", "/Users/rodri/Documents/investigacion/distros/git/voronto/Voronto/src/es/usal/voronto/data/go/gobiological_process-calbicans_gene_ensembl.map");
 		
 		//GOparser.parse("es/usal/voronto/data/go/gene_ontology_ext.obo", "biological_process", true);

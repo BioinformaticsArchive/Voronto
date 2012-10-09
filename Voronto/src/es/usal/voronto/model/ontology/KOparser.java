@@ -80,6 +80,9 @@ public class KOparser {
 	    	if(ed.organismKegg.equals("sce") || ed.organismKegg.equals("spo"))	
 	    		{if(!ed.chip.equals("ensembl_gene_id") && ed.ensembl_gene_idHash!=null)	
 	    			geneMap=ed.invertedHash(ed.ensembl_gene_idHash);}
+	    	else if(ed.organismKegg.equals("cal"))
+    			{if(!ed.chip.equals("external_gene_id") && ed.external_gene_idHash!=null)	
+    				geneMap=ed.invertedHash(ed.ensembl_gene_idHash);}
 	    	else								
 	    		{if(!ed.chip.equals("entrezgene") && ed.entrezgeneHash!=null)	
 	    			geneMap=ed.invertedHash(ed.entrezgeneHash);}

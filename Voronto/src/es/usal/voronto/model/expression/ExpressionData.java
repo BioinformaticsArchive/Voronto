@@ -952,9 +952,10 @@ private void generateSynonyms()
 		while((cad=in.readLine())!=null)
 			{
 			String[] sp=cad.split("\t");
+			String ens=null;
 			String ent=sp[0];
 			String ext=sp[1];
-			String ens=sp[2];
+			if(sp.length>2)	ens=sp[2];
 			int pos=-1;
 			
 			if(this.chip.equals("entrezgene"))
